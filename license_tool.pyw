@@ -117,12 +117,35 @@ def main() -> None:
     body = ttk.Frame(root, padding=16)
     body.pack(fill="both", expand=True)
 
-    ttk.Label(body, text="PC ID (from the church's Help > License and Subscription > Copy ID):").grid(row=0, column=0, columnspan=2, sticky="w")
+    ttk.Label(body, text="PC ID (paste the church's license request, or just the PC ID):").grid(row=0, column=0, columnspan=2, sticky="w")
     pc_value = tk.StringVar()
-    pc_entry = ttk.Entry(body, textvariable=pc_value, width=60)
-    pc_entry.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 10))
+    pc_row = ttk.Frame(body)
+    pc_row.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 10))
+    pc_entry = ttk.Entry(pc_row, textvariable=pc_value, width=46)
+    pc_entry.pack(side="left", fill="x", expand=True)
     ttk.Label(body, text="Church name:").grid(row=2, column=0, columnspan=2, sticky="w")
     church_value = tk.StringVar()
+
+    def apply_request(text: str) -> bool:
+        pc_id, church = licensing.parse_license_request(text)
+        if not pc_id:
+            return False
+        if pc_value.get() != pc_id:
+            pc_value.set(pc_id)
+        if church:
+            church_value.set(church)
+        return True
+
+    def paste_request() -> None:
+        try:
+            text = root.clipboard_get()
+        except tk.TclError:
+            text = ""
+        if not apply_request(text):
+            messagebox.showerror("Paste Request", "No PC ID was found in the copied text. Copy the church's whole license request message, then try again.", parent=root)
+
+    pc_value.trace_add("write", lambda *_: apply_request(pc_value.get()) if len(pc_value.get().strip()) > 32 else None)
+    ttk.Button(pc_row, text="Paste Request", command=paste_request).pack(side="left", padx=(8, 0))
     ttk.Entry(body, textvariable=church_value, width=60).grid(row=3, column=0, columnspan=2, sticky="ew", pady=(4, 10))
     ttk.Label(body, text="License length:").grid(row=4, column=0, sticky="w")
     duration_value = tk.StringVar(value="1 month (31 days)")

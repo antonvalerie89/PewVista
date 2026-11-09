@@ -106,6 +106,13 @@ class LicensingTests(unittest.TestCase):
         self.assertEqual(status.state, "licensed")
         self.assertTrue(status.subscription_id.startswith("MANUAL-GRACECHURCH"))
 
+    def test_license_request_round_trip(self) -> None:
+        request = licensing.build_license_request(" Grace   Church ", MACHINE)
+        self.assertEqual(licensing.parse_license_request(request), (MACHINE, "Grace Church"))
+        self.assertEqual(licensing.parse_license_request(MACHINE.upper()), (MACHINE, ""))
+        self.assertEqual(licensing.parse_license_request(licensing.build_license_request("", MACHINE)), (MACHINE, ""))
+        self.assertEqual(licensing.parse_license_request("hello"), ("", ""))
+
     def test_subscription_id_without_server_gives_clear_error(self) -> None:
         with patch.object(licensing, "LICENSE_SERVER_URL", ""):
             with self.assertRaisesRegex(licensing.LicenseError, "not available yet"):

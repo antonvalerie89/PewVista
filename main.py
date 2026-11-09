@@ -2533,14 +2533,16 @@ def build_ui() -> tk.Tk:
         ttk.Label(body, text=f"This PC's ID: {machine_id}").grid(row=4, column=0, sticky="w", pady=(12, 0))
 
         def copy_machine_id() -> None:
-            """What: Copy this PC's ID for a manual license request.
+            """What: Copy a license request with the church name and this PC's ID.
 
-            Why included: Manual license codes are bound to one PC.
+            Why included: Manual license codes are bound to one PC and issued per church.
             Where used: The Copy ID button.
             Returns: None.
             """
+            church_name = str(get_branding_settings().get("church_name") or "").strip()
             root.clipboard_clear()
-            root.clipboard_append(machine_id)
+            root.clipboard_append(licensing.build_license_request(church_name, machine_id))
+            messagebox.showinfo("License", "Copied the church name and this PC's ID. Paste them into an email or WhatsApp message to PewVista.", parent=dialog)
 
         ttk.Button(body, text="Copy ID", command=copy_machine_id).grid(row=4, column=1, padx=(8, 0), pady=(12, 0))
 

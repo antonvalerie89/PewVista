@@ -560,6 +560,34 @@ def fill_price_placeholders(text: str) -> str:
     return str(text).replace(PRICE_PLACEHOLDER, get_price_text())
 
 
+def build_license_request(church_name: str, machine_id: str | None = None) -> str:
+    """What: Build the text a church sends to request a license code.
+
+    Why included: The publisher's tool reads both the church name and the PC ID from it.
+    Where used: Help > License and Subscription > Copy ID.
+    Returns: A short multi-line request.
+    """
+    church = " ".join(str(church_name or "").split()) or "(church name not set)"
+    return f"PewVista license request\nChurch: {church}\nPC ID: {machine_id or get_machine_id()}"
+
+
+def parse_license_request(text: str) -> tuple[str, str]:
+    """What: Read the PC ID and church name from a pasted license request.
+
+    Why included: Saves the publisher from typing details the church already sent.
+    Where used: license_tool.pyw Paste Request.
+    Returns: (pc_id, church_name); either is empty when not found.
+    """
+    import re
+    text = str(text or "")
+    pc_match = re.search(r"\b([0-9a-fA-F]{32})\b", text)
+    church_match = re.search(r"^\s*Church:\s*(.+?)\s*$", text, re.MULTILINE)
+    church = church_match.group(1) if church_match else ""
+    if church.startswith("(") and church.endswith(")"):
+        church = ""
+    return (pc_match.group(1).lower() if pc_match else ""), church
+
+
 def _main(argv: list[str]) -> int:
     import argparse
     parser = argparse.ArgumentParser(description="PewVista license publisher tools")
