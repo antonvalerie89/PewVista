@@ -30,7 +30,15 @@ def create_code(pc_id: str, church: str, days: int) -> tuple[str, date]:
         raise ValueError("The PC ID must be the 32 letters and numbers shown in the church's License window.")
     if not church:
         raise ValueError("Enter the church name.")
-    code = licensing.issue_manual_token(pc_id, church, days)
+    key_path = licensing.default_signing_key_path()
+    if not key_path.is_file():
+        # Never create a new key here: codes from a new key are rejected by every installed PewVista.
+        raise ValueError(f"Your signing key was not found at:\n{key_path}\n\nRestore the 'PewVista Signing' folder from your backup first. "
+                         "Do not create a new key; codes made with a new key will not work for churches.")
+    key = licensing.load_or_create_signing_key(key_path)
+    if licensing.public_key_hex(key) not in licensing.TRUSTED_LICENSE_KEYS:
+        raise ValueError("The signing key found does not match PewVista. Restore the original 'PewVista Signing' folder from your backup.")
+    code = licensing.issue_manual_token(pc_id, church, days, private_key=key)
     expires = date.today() + timedelta(days=days)
     with RECORDS_PATH.open("a", encoding="utf-8") as records:
         records.write(f"{date.today().isoformat()}\t{church}\t{pc_id}\t{days} days\tvalid until {expires.isoformat()}\n")
