@@ -35,7 +35,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from app_paths import get_app_data_path
+from app_paths import get_app_base_path, get_app_data_path
 
 try:
     from cryptography.exceptions import InvalidSignature
@@ -51,7 +51,8 @@ except ImportError:
 TRIAL_DAYS = 15
 OFFLINE_GRACE_DAYS = 30
 MAX_DEVICES = 2
-PRICE_TEXT = "US$10 per month"
+PRICE_PLACEHOLDER = "{PRICE}"
+DEFAULT_PRICE_TEXT = "US$10 per month"
 # Filled in once the license server and PayPal subscription plan exist.
 LICENSE_SERVER_URL = ""
 PAYPAL_SUBSCRIBE_URL = ""
@@ -523,6 +524,42 @@ def issue_manual_token(machine_id: str, customer: str, days: int = 31, private_k
     return sign_token(payload, key)
 
 
+def get_pricing_file_path() -> Path:
+    return get_app_base_path() / "Resourses" / "pricing.json"
+
+
+def get_price_text() -> str:
+    """What: Read the subscription price the publisher set in Resourses/pricing.json.
+
+    Why included: One setting drives the app, the Terms and Conditions, and the manual.
+    Where used: The license dialog, document display, and the build.
+    Returns: Text such as "US$10 per month"; the default when the file is missing or invalid.
+    """
+    try:
+        value = json.loads(get_pricing_file_path().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return DEFAULT_PRICE_TEXT
+    price = str(value.get("price") or "").strip() if isinstance(value, dict) else ""
+    return price or DEFAULT_PRICE_TEXT
+
+
+def save_price_text(price: str) -> None:
+    """What: Store a new subscription price for the next build.
+
+    Why included: The publisher's license tool changes the price without editing files.
+    Where used: license_tool.pyw.
+    Returns: None; raises ValueError for an empty price.
+    """
+    price = " ".join(str(price or "").split())
+    if not price:
+        raise ValueError("Enter a price, for example: US$10 per month")
+    get_pricing_file_path().write_text(json.dumps({"price": price}, indent=2) + "\n", encoding="utf-8")
+
+
+def fill_price_placeholders(text: str) -> str:
+    return str(text).replace(PRICE_PLACEHOLDER, get_price_text())
+
+
 def _main(argv: list[str]) -> int:
     import argparse
     parser = argparse.ArgumentParser(description="PewVista license publisher tools")
@@ -532,9 +569,15 @@ def _main(argv: list[str]) -> int:
     issue.add_argument("machine_id")
     issue.add_argument("customer")
     issue.add_argument("--days", type=int, default=31)
+    fill = commands.add_parser("fill-price", help="Replace {PRICE} in packaged documents (used by the build)")
+    fill.add_argument("files", nargs="+", type=Path)
     args = parser.parse_args(argv)
     if args.command == "public-key":
         print(public_key_hex(load_or_create_signing_key()))
+    elif args.command == "fill-price":
+        for path in args.files:
+            path.write_text(fill_price_placeholders(path.read_text(encoding="utf-8")), encoding="utf-8")
+        print(f"Price set to: {get_price_text()}")
     else:
         print(issue_manual_token(args.machine_id, args.customer, args.days))
     return 0

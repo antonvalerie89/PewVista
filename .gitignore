@@ -32,3 +32,6 @@ config/
 Resourses/obs_portable/
 Resourses/obs_bootstrap/
 Resourses/grammar/
+
+# Publisher's private license records
+license_records.txt

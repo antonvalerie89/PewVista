@@ -48,6 +48,13 @@ set "LICENSE_CHECK_RESULT=%ERRORLEVEL%"
 popd
 if not "%LICENSE_CHECK_RESULT%"=="0" exit /b %LICENSE_CHECK_RESULT%
 
+echo Running automatic update regression tests...
+pushd "%~dp0"
+"%PYTHON_EXE%" -m unittest discover -s tests -p test_auto_update.py
+set "AUTO_UPDATE_CHECK_RESULT=%ERRORLEVEL%"
+popd
+if not "%AUTO_UPDATE_CHECK_RESULT%"=="0" exit /b %AUTO_UPDATE_CHECK_RESULT%
+
 echo [4/5] Running backend reliability smoke test...
 "%PYTHON_EXE%" "%~dp0reliability_smoke_test.py"
 if errorlevel 1 exit /b 1

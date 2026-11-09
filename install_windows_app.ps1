@@ -483,7 +483,7 @@ public static class SetupConsoleWindow {
         $termsPath = Join-Path $SourceDirectory "TERMS_AND_CONDITIONS.txt"
         if (Test-Path -LiteralPath $termsPath -PathType Leaf) {
             Write-Host "---- Terms and Conditions ----"
-            Get-Content -LiteralPath $termsPath | Write-Host
+            Get-Content -LiteralPath $termsPath -Encoding UTF8 | Write-Host
             Write-Host "------------------------------"
         }
         try { $answer = Read-Host "Do you accept the Terms and Conditions? (yes/no)" }

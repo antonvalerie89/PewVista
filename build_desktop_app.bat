@@ -184,6 +184,12 @@ if errorlevel 1 (
     echo [ERROR] Could not copy the Security and Privacy statement into the app package.
     exit /b 1
 )
+rem Put the publisher's price from Resourses\pricing.json into the packaged documents.
+"%PYTHON_EXE%" "%ROOT_DIR%licensing.py" fill-price "%DIST_APP_DIR%\TERMS_AND_CONDITIONS.txt" "%DIST_APP_DIR%\OPERATING_MANUAL.txt"
+if errorlevel 1 (
+    echo [ERROR] Could not insert the subscription price into the packaged documents.
+    exit /b 1
+)
 
 echo.
 echo [Step 5/5] Including customer installation helpers...

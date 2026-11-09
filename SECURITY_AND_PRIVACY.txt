@@ -1,62 +1,70 @@
 PewVista Privacy and Security Statement
 
-This statement explains what information PewVista stores, where it is stored, how it is protected, and what your organisation is responsible for.
+This statement explains what information PewVista stores, where it is stored, how it is protected, and what your organization is responsible for.
 
 1. What PewVista Stores
 
-PewVista may store information entered by your organisation, including:
+PewVista may store information entered by your organization, including:
 
-Member names
-Surnames
-Telephone numbers
-Addresses
-Email addresses
-Dates of birth
-Song libraries
-Saved services
-Service history
-Welcome notes
-CCLI information
-One Licence information
-Application settings
-Background images
-Videos
-Other content added by authorised users
+- Member names
+- Surnames
+- Telephone numbers
+- Addresses
+- Email addresses
+- Dates of birth
+- Song libraries
+- Saved services
+- Service history
+- Welcome notes
+- CCLI information
+- One License information
+- Application settings
+- License and trial information
+- Background images
+- Videos
+- Other content added by authorized users
 
-Only information entered by your organisation is stored.
+Only information entered by your organization is stored.
 
 2. Where Data Is Stored
 
-PewVista stores data locally on computers owned or managed by your organisation.
+PewVista stores data locally on computers owned or managed by your organization.
 
 Data is normally stored within the shared data folder selected during installation.
 
-Backup copies may also be stored within the backup locations configured by your organisation.
+Backup copies may also be stored within the backup locations configured by your organization.
 
-PewVista does not require an online account, cloud platform, or centralised database operated by the developer.
+PewVista does not require an online account, cloud platform, or centralized database operated by the developer for your organization's data.
 
-The developer does not automatically collect, receive, access, review, or store your organisation's data.
+The developer does not automatically collect, receive, access, review, or store your organization's data, such as member details, song libraries, or services.
+
+Licensing records
+
+To manage subscriptions, PewVista and the developer keep the limited licensing information described in section 3: the organization's name and contact details, subscription or payment references, license periods, and the PC IDs of licensed computers. A PC ID is an anonymous code derived from the computer; it contains no names or files. License and trial information is also stored on each licensed computer.
 
 3. Internet Usage
 
-PewVista operates primarily offline.
+PewVista operates primarily offline. It uses the internet only for the following:
 
-Internet access is only used when an authorised user chooses features that require downloading content from an external source, such as importing supported files from a web address.
+- Licensing: when a PC is activated with a PayPal subscription, and about once a day afterwards while online, PewVista sends the subscription ID, the PC ID, the computer's name, and the PewVista version to the PewVista license service to confirm the subscription. License codes issued for direct payment need no internet connection.
+- Update checks: about once a day, PewVista checks whether a newer version is available. Only the request itself is sent; no personal information is included.
+- OBS Studio: during installation, or the first time the secondary screen starts, PewVista may download OBS Studio from its official website if it is not already on the computer.
+- Features chosen by an authorized user that download content from an external source, such as importing supported files from a web address.
 
-Unless specifically requested by the user, PewVista does not transmit church member information, song libraries, service data, or personal information to the developer.
+PewVista never transmits church member information, song libraries, service data, or other content to the developer unless an authorized user specifically chooses to send it, for example for technical support.
 
 4. Who Can Access Data
 
 Access to information stored by PewVista depends on the permissions configured on the computer where the software is installed.
 
-The organisation is responsible for:
+The organization is responsible for:
 
-Managing user accounts
-Granting access rights
-Removing access when required
-Protecting administrator accounts
+- Managing user accounts
+- Granting access rights
+- Removing access when required
+- Protecting administrator accounts
 
-Sensitive member information may be encrypted by PewVista. However, the organisation remains responsible for overall computer security and physical access to the device.
+Sensitive member information may be encrypted by PewVista. However, the organization remains responsible for overall computer security and physical access to the device.
 
 5. Data Security Measures
 
@@ -64,47 +72,48 @@ PewVista includes security features designed to help protect stored information.
 
 These may include:
 
-Local encryption of sensitive member information
-Password-protected exports
-Access restrictions based on Windows permissions
-Secure update verification
-Digitally signed updates
-Backup management features
-Protected communication between application components
+- Local encryption of sensitive member information
+- Password-protected exports
+- Access restrictions based on Windows permissions
+- Secure update verification
+- Digitally signed updates
+- Backup management features
+- Protected communication between application components
 
 No security measure can guarantee absolute protection.
 
-Organisations should implement appropriate security practices, including:
+Organizations should implement appropriate security practices, including:
 
-Strong passwords
-Device security
-Antivirus protection
-Drive encryption
-Regular backups
-User access controls
+- Strong passwords
+- Device security
+- Antivirus protection
+- Drive encryption
+- Regular backups
+- User access controls
+
 6. Software Updates
 
-Updates are not installed automatically unless specifically enabled by the organisation.
+PewVista checks for new versions automatically but never installs an update without the confirmation of an authorized user.
 
-Where supported, update packages are digitally verified before installation.
+Update packages are digitally verified before installation; altered or unsigned packages are refused.
 
-Backup copies may be created before updates are applied.
+Backup copies are created before updates are applied.
 
-The organisation is responsible for deciding whether and when updates are installed.
+The organization is responsible for deciding whether and when updates are installed.
 
-7. Your Organisation's Responsibilities
+7. Your Organization's Responsibilities
 
-Your organisation is responsible for:
+Your organization is responsible for:
 
-Ensuring lawful collection of personal information
-Obtaining required consent where applicable
-Maintaining accurate records
-Protecting personal information
-Responding to requests for correction or deletion
-Managing data retention periods
-Following applicable privacy and data-protection laws
+- Ensuring lawful collection of personal information
+- Obtaining required consent where applicable
+- Maintaining accurate records
+- Protecting personal information
+- Responding to requests for correction or deletion
+- Managing data retention periods
+- Following applicable privacy and data-protection laws
 
-This responsibility remains with your organisation regardless of the features used within PewVista.
+This responsibility remains with your organization regardless of the features used within PewVista.
 
 8. Privacy and Data Protection Compliance
 
@@ -112,41 +121,42 @@ Privacy laws differ between countries and regions.
 
 Examples include:
 
-POPIA (South Africa)
-GDPR (European Union)
-UK GDPR (United Kingdom)
-Privacy Act requirements in various jurisdictions
+- POPIA (South Africa)
+- GDPR (European Union)
+- UK GDPR (United Kingdom)
+- Privacy Act requirements in various jurisdictions
 
-The organisation using PewVista is solely responsible for ensuring compliance with all applicable privacy, data-protection, and information-governance laws.
+The organization using PewVista is solely responsible for ensuring compliance with all applicable privacy, data-protection, and information-governance laws.
 
 The developer does not provide legal advice regarding compliance obligations.
 
 9. Developer Access to Your Data
 
-The developer does not routinely access, collect, monitor, analyse, sell, share, or process customer data stored within PewVista.
+The developer does not routinely access, collect, monitor, analyze, sell, share, or process customer data stored within PewVista.
 
-If technical support is requested, the organisation may voluntarily provide exports, screenshots, log files, or backups for troubleshooting purposes.
+If technical support is requested, the organization may voluntarily provide exports, screenshots, log files, or backups for troubleshooting purposes.
 
-Such information is supplied at the organisation's discretion.
+Such information is supplied at the organization's discretion.
 
 10. Limitation of Responsibility
 
 PewVista is a software tool.
 
-The organisation using PewVista remains the controller, owner, and manager of all data entered into the software.
+The organization using PewVista remains the controller, owner, and manager of all data entered into the software.
 
 The developer is not responsible for:
 
-How information is collected
-How information is used
-Decisions made using stored information
-User account management
-Loss of passwords
-Data breaches caused by third parties
-Device theft
-Improper configuration
-Failure to maintain backups
-Failure to comply with applicable privacy laws
+- How information is collected
+- How information is used
+- Decisions made using stored information
+- User account management
+- Loss of passwords
+- Data breaches caused by third parties
+- Device theft
+- Improper configuration
+- Failure to maintain backups
+- Failure to comply with applicable privacy laws
+
 11. Contact Information
 
 For questions regarding privacy, security, or data handling within PewVista, please contact:
@@ -156,4 +166,4 @@ PewVista
 
 Important
 
-PewVista stores and manages information on behalf of the organisation using the software. Responsibility for the accuracy, security, lawful collection, lawful use, retention, and deletion of that information remains solely with the organisation operating PewVista.
+PewVista stores and manages information on behalf of the organization using the software. Responsibility for the accuracy, security, lawful collection, lawful use, retention, and deletion of that information remains solely with the organization operating PewVista.

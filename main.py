@@ -43,6 +43,8 @@ from spell_check import SpellCheckController
 from windows_update import apply_optional_update_data, discard_prepared_update, launch_prepared_update, prepare_update_archive
 from music_licensing import load_music_license_settings, save_music_license_settings
 import licensing
+import auto_update
+import tempfile
 
 
 class RECT(ctypes.Structure):
@@ -1435,7 +1437,7 @@ def require_terms_acceptance(parent: tk.Misc) -> bool:
     """
     terms_path = get_app_base_path() / "TERMS_AND_CONDITIONS.txt"
     try:
-        terms_text = terms_path.read_text(encoding="utf-8")
+        terms_text = licensing.fill_price_placeholders(terms_path.read_text(encoding="utf-8"))
     except OSError:
         terms_text = ("TERMS_AND_CONDITIONS.txt was not found beside the app.\n\n"
             "By choosing \"I accept\" you accept the distributor's Terms and Conditions for installing this update.")
@@ -1501,7 +1503,7 @@ def show_text_document(parent: tk.Misc, title: str, document_path: Path) -> None
     Returns: None; the window closes through its own controls.
     """
     try:
-        content = document_path.read_text(encoding="utf-8")
+        content = licensing.fill_price_placeholders(document_path.read_text(encoding="utf-8"))
     except OSError:
         content = f"{document_path.name} was not found beside the app."
     window = tk.Toplevel(parent)
@@ -2219,11 +2221,11 @@ def build_ui() -> tk.Tk:
             lambda report: import_service_days_archive(Path(archive_path), selected_dates, mode, get_app_data_path(), report),
             "Selected service days imported with their referenced songs/backgrounds. Restart the app to reload them.")
 
-    def install_windows_update() -> None:
-        """What: Prepare a selected desktop ZIP and hand installation to an external process.
+    def install_windows_update(selected: str | Path | None = None, confirmed: bool = False) -> None:
+        """What: Prepare a desktop update ZIP and hand installation to an external process.
 
         Why included: Other PCs need an in-app update workflow that preserves their own databases.
-        Where used: Update -> Install Update in the menu bar.
+        Where used: Help > Install Update (file picker) and the automatic update download.
         Returns: None; closes this app only after preparation and installer launch succeed.
         """
         if update_state["busy"]:
@@ -2231,10 +2233,11 @@ def build_ui() -> tk.Tk:
         if not getattr(sys, "frozen", False):
             messagebox.showinfo("Install Update", "Use Install Update in the packaged Windows app. The Python workspace is updated through its build scripts.", parent=root)
             return
-        selected = filedialog.askopenfilename(parent=root, title=f"Select {PRODUCT_NAME} update ZIP", filetypes=[("Windows update ZIP", "*.zip")])
+        if selected is None:
+            selected = filedialog.askopenfilename(parent=root, title=f"Select {PRODUCT_NAME} update ZIP", filetypes=[("Windows update ZIP", "*.zip")])
         if not selected:
             return
-        if not messagebox.askyesno("Install Update", "Install this ZIP from a trusted source?\n\nThe app and its bundled OBS will close after preparation. Your databases and settings will be preserved, and existing data/program files will be backed up. The app will restart after installation.", parent=root):
+        if not confirmed and not messagebox.askyesno("Install Update", "Install this ZIP from a trusted source?\n\nThe app and its bundled OBS will close after preparation. Your databases and settings will be preserved, and existing data/program files will be backed up. The app will restart after installation.", parent=root):
             return
         if not require_terms_acceptance(root):
             messagebox.showinfo("Install Update", "The update was cancelled because the Terms and Conditions were not accepted.", parent=root)
@@ -2290,6 +2293,61 @@ def build_ui() -> tk.Tk:
 
         start_background_task("WindowsUpdatePrepare", prepare_worker,
             on_success=preparation_ready, on_error=preparation_failed, on_progress=show_progress)
+
+    def check_for_updates(manual: bool = False) -> None:
+        """What: Look for a newer release online and offer to download and install it.
+
+        Why included: Churches should get fixes without finding update files themselves.
+        Where used: Help > Check for Updates and the daily startup check.
+        Returns: None; network work runs in the background and only asks, never installs silently.
+        """
+        if update_state["busy"]:
+            return
+        if not getattr(sys, "frozen", False):
+            if manual:
+                messagebox.showinfo("Check for Updates", "Updates apply to the installed Windows app, not the Python workspace.", parent=root)
+            return
+
+        def check_failed(error: BaseException) -> None:
+            if manual:
+                messagebox.showerror("Check for Updates", str(error), parent=root)
+
+        def check_finished(feed) -> None:
+            if not feed:
+                if manual:
+                    messagebox.showinfo("Check for Updates", f"{PRODUCT_NAME} is up to date (version {get_release_version()}).", parent=root)
+                return
+            notes = str(feed.get("notes") or "").strip()
+            size_mb = int(feed.get("size") or 0) // (1024 * 1024)
+            question = (f"A new {PRODUCT_NAME} version is available: {feed['version']}\n"
+                        f"Installed: {get_release_version()}\n\n" + (f"What's new:\n{notes}\n\n" if notes else "")
+                        + f"Download ({size_mb} MB) and install it now? The app restarts afterwards; "
+                        "your data and settings are kept. Choose No to be reminded later.")
+            if not messagebox.askyesno("Update Available", question, parent=root):
+                return
+            update_state["busy"] = True
+            help_menu.entryconfigure(update_entry_index, state="disabled", label="Downloading update...")
+            target = Path(tempfile.gettempdir()) / "PewVista-update" / auto_update.UPDATE_FILE_NAME
+
+            def download_progress(received: int, total: int) -> None:
+                if total:
+                    help_menu.entryconfigure(update_entry_index, label=f"Downloading update... {received * 100 // total}%")
+
+            def download_failed(error: BaseException) -> None:
+                update_state["busy"] = False
+                help_menu.entryconfigure(update_entry_index, state="normal", label="Install Update...")
+                messagebox.showerror("Update", str(error), parent=root)
+
+            def download_finished(path) -> None:
+                update_state["busy"] = False
+                help_menu.entryconfigure(update_entry_index, state="normal", label="Install Update...")
+                install_windows_update(path, confirmed=True)
+
+            start_background_task("AutoUpdateDownload", lambda report: auto_update.download_update(feed, target, progress=report),
+                on_success=download_finished, on_error=download_failed, on_progress=download_progress)
+
+        start_background_task("AutoUpdateCheck", lambda: auto_update.check_for_update(get_release_version()),
+            on_success=check_finished, on_error=check_failed)
 
     container = tk.Frame(root, bg=THEMES["Light"]["window_bg"])
     container.pack(expand=True, fill="both")
@@ -2460,7 +2518,7 @@ def build_ui() -> tk.Tk:
         body.columnconfigure(0, weight=1)
         status_value = tk.StringVar()
         ttk.Label(body, textvariable=status_value, font=("Segoe UI", 11, "bold"), wraplength=520, justify="left").grid(row=0, column=0, columnspan=3, sticky="w")
-        ttk.Label(body, text=(f"Subscription: {licensing.PRICE_TEXT}, {licensing.TRIAL_DAYS}-day free trial, up to "
+        ttk.Label(body, text=(f"Subscription: {licensing.get_price_text()}, {licensing.TRIAL_DAYS}-day free trial, up to "
                               f"{licensing.MAX_DEVICES} PCs per subscription. After subscribing, PayPal emails a "
                               f"subscription ID (starts with I-). Each PC must connect to the internet at least "
                               f"once every {licensing.OFFLINE_GRACE_DAYS} days."),
@@ -2566,7 +2624,7 @@ def build_ui() -> tk.Tk:
         code_entry.bind("<Return>", lambda _event: activate())
         buttons = ttk.Frame(body)
         buttons.grid(row=5, column=0, columnspan=3, sticky="ew", pady=(16, 0))
-        subscribe_button = ttk.Button(buttons, text=f"Subscribe with PayPal ({licensing.PRICE_TEXT})", command=open_subscribe_page)
+        subscribe_button = ttk.Button(buttons, text=f"Subscribe with PayPal ({licensing.get_price_text()})", command=open_subscribe_page)
         subscribe_button.pack(side="left")
         if not licensing.PAYPAL_SUBSCRIBE_URL:
             subscribe_button.configure(state="disabled")
@@ -2592,6 +2650,9 @@ def build_ui() -> tk.Tk:
     help_menu.add_separator()
     help_menu.add_command(label="Install Update...", command=install_windows_update)
     update_entry_index = int(help_menu.index("end"))
+    help_menu.add_command(label="Check for Updates...", command=lambda: check_for_updates(manual=True))
+    if auto_update.check_due():
+        root.after(20000, check_for_updates)
     help_menu.add_separator()
     help_menu.add_command(label=f"Version: {get_release_version()}", state="disabled")
 

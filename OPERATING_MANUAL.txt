@@ -52,7 +52,7 @@ UPDATES
 LICENSE AND SUBSCRIPTION
 - PewVista starts with a 15-day free trial. The window title shows the
   days left.
-- Subscribe with PayPal (US$10 per month) under Help > License and
+- Subscribe with PayPal ({PRICE}) under Help > License and
   Subscription. Enter the subscription ID PayPal emails you (it starts
   with I-) and choose Activate. One subscription covers 2 PCs.
 - Each PC must connect to the internet at least once every 30 days to

@@ -1,48 +1,184 @@
-PewVista - Third-Party Software Notices
+PEWVISTA
+THIRD-PARTY SOFTWARE NOTICES AND OPEN-SOURCE LICENCES
 
-PewVista includes the third-party software listed below. Each component
-remains under its own license; nothing here changes those licenses. The
-full license texts are installed with PewVista at the locations shown.
+Effective Date: 9 November 2026
 
-OBS STUDIO 32.1.2 (live secondary screen)
-  Copyright (c) the OBS Project contributors.
-  License: GNU General Public License version 2 (GPL-2.0-or-later).
-  License text (after Setup): Resourses\obs_portable\data\obs-studio\license\gplv2.txt
-  Complete corresponding source code for this exact version:
-    https://github.com/obsproject/obs-studio/releases/tag/32.1.2
-  PewVista does not ship OBS. Setup copies an OBS Studio already
-  installed on the PC, or downloads the official, unmodified OBS
-  release from the address above. PewVista controls OBS through
-  OBS's own remote-control interface and does not include OBS code in
-  PewVista itself.
+PewVista includes or interacts with third-party software, libraries, runtime components, and other resources developed and maintained by independent third parties.
 
-LANGUAGETOOL 6.6 (grammar checking, runs offline)
-  Copyright (c) Daniel Naber and LanguageTool contributors.
-  License: GNU Lesser General Public License version 2.1 (LGPL-2.1).
-  License text: Resourses\grammar\LanguageTool\COPYING.txt
-  Source code: https://github.com/languagetool-org/languagetool
+Each third-party component remains subject to its own licence terms and conditions. Nothing in this notice modifies, replaces, restricts, or extends any rights granted under those licences.
 
-ECLIPSE TEMURIN JAVA RUNTIME 21.0.12 (used by LanguageTool)
-  Provided by the Eclipse Adoptium project.
-  License: GNU General Public License version 2 with the Classpath
-  Exception, and the third-party licenses listed in its legal folder.
-  License texts: Resourses\grammar\java\legal\
-  Source code: https://github.com/adoptium/jdk21u
+The software listed below is developed and maintained by independent third parties. PewVista is not affiliated with, endorsed by, sponsored by, or officially associated with the authors, organisations, trademark owners, or contributors of these products unless expressly stated otherwise.
 
-FFMPEG 7.1 (video background decoding, via imageio-ffmpeg)
-  Copyright (c) the FFmpeg developers.
-  License: GNU General Public License (this build includes GPL parts).
-  Source code: https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz
+Copies of applicable licence texts are included with PewVista where required by the relevant licences.
 
-PYTHON LIBRARIES AND RUNTIME
-  Python (PSF License), Tcl/Tk (BSD-style), Pillow (HPND), NumPy (BSD),
-  imageio and imageio-ffmpeg (BSD), obsws-python (GPL-3.0), spylls
-  (MPL-2.0), langid (BSD), SQLCipher via sqlcipher3 (BSD-style,
-  Zetetic LLC), cryptography (Apache-2.0 / BSD), PyInstaller bootloader
-  (GPL-2.0 with the PyInstaller bootloader exception).
+OBS Studio 32.1.2
 
-BIBLE TEXTS AND WORD-STUDY DATA
-  See Help > Bible Credits and Licenses.
+Purpose: Live Secondary Screen Display
 
-To request a copy of any source code listed here, contact PewVista at
-pewvista52@gmail.com.
+Copyright © The OBS Project Contributors.
+
+Licence: GNU General Public License Version 2 (GPL-2.0-or-later)
+
+Licence Text Location:
+
+Plain Text
+Resources\obs_portable\data\obs-studio\license\gplv2.txt
+
+Source Code:
+
+Plain Text
+https://github.com/obsproject/obs-studio/releases/tag/32.1.2
+
+OBS and OBS Studio are trademarks of the OBS Project.
+
+Use of those trademarks does not imply endorsement by the OBS Project.
+
+PewVista does not include modified OBS Studio source code or modified OBS Studio binaries.
+
+During installation, PewVista may:
+
+Use an existing installation of OBS Studio already present on the customer's computer; or
+Download the official, unmodified OBS Studio release from the OBS Project.
+
+PewVista communicates with OBS Studio solely through OBS Studio's publicly documented interfaces and remote-control functionality.
+
+LanguageTool 6.6
+
+Purpose: Offline Grammar and Language Checking
+
+Copyright © Daniel Naber and LanguageTool Contributors.
+
+Licence: GNU Lesser General Public License Version 2.1 (LGPL-2.1)
+
+Licence Text Location:
+
+Plain Text
+Resources\grammar\LanguageTool\COPYING.txt
+ 
+
+Source Code:
+
+Plain Text
+https://github.com/languagetool-org/languagetool
+Eclipse Temurin Java Runtime 21.0.12
+
+Purpose: Java Runtime Required by LanguageTool
+
+Provided by the Eclipse Adoptium Project.
+
+Licence:
+
+GNU General Public License Version 2 (GPLv2)
+Classpath Exception
+Additional third-party licences included with the distribution
+
+Licence Text Location:
+
+Plain Text
+Resources\grammar\java\legal\
+
+Source Code:
+
+Plain Text
+https://github.com/adoptium/jdk21u
+FFmpeg 7.1
+
+Purpose: Video Background Decoding and Media Processing
+
+Copyright © FFmpeg Developers.
+
+Licence: GNU General Public License (GPL)
+
+This FFmpeg build includes GPL-licensed components.
+
+Licence Text Location:
+
+Plain Text
+Resources\licenses\ffmpeg\
+
+Source Code:
+
+Plain Text
+https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz
+
+Project Website:
+
+Plain Text
+https://ffmpeg.org
+Python Runtime and Libraries
+
+PewVista is developed using Python and includes or depends upon various open-source libraries and components.
+
+These may include, but are not limited to:
+
+Component	Licence
+Python	Python Software Foundation Licence (PSF)
+Tcl/Tk	BSD-style Licence
+Pillow	Historical Permission Notice and Disclaimer (HPND)
+NumPy	BSD Licence
+imageio	BSD Licence
+imageio-ffmpeg	BSD Licence
+obsws-python	GPL-3.0
+spylls	MPL-2.0
+langid	BSD Licence
+sqlcipher3	BSD-style Licence
+SQLCipher	Zetetic Open Source Licensing
+cryptography	Apache 2.0 / BSD
+PyInstaller Bootloader	GPL-2.0 with PyInstaller Bootloader Exception
+
+Applicable notices and licence texts are included where required by the relevant licences.
+
+Bible Texts, Bible Translations, Dictionaries and Study Resources
+
+Bible translations, dictionaries, lexicons, Strong's data, commentaries, maps, study materials, and other Bible-related resources included with or accessed through PewVista remain subject to their respective copyright notices, permissions, licences, and usage restrictions.
+
+For detailed information see:
+
+Plain Text
+Help > Bible Credits and Licenses
+
+Customers remain solely responsible for complying with all licence terms applicable to Bible resources used within PewVista.
+
+Trademarks
+
+All trademarks, logos, product names, service marks, and brand names referenced in PewVista remain the property of their respective owners.
+
+Any reference to a third-party product, trademark, organisation, or service does not imply endorsement, approval, sponsorship, or affiliation unless expressly stated.
+
+Open-Source Licence Availability
+
+Copies of open-source licence texts required by applicable licences are included with PewVista.
+
+Where an open-source licence requires access to corresponding source code, that source code is available from the original project websites listed in this notice.
+
+Source Code Requests
+
+Source code for the open-source software identified in this notice is available from the respective projects using the source-code addresses listed above.
+
+Where required under the applicable licence terms, PewVista will provide information on obtaining the corresponding source code upon written request.
+
+Requests may be sent to:
+
+PewVista
+ Email: pewvista52@gmail.com
+
+No Modification of Third-Party Licences
+
+Nothing in PewVista, its installer, documentation, Terms and Conditions, subscription terms, licence agreement, or related materials alters, limits, replaces, or supersedes any rights granted under the licences governing the third-party software identified above.
+
+All third-party software remains subject solely to its own licence terms.
+
+Contact Information
+
+For questions regarding third-party software, open-source licences, or source-code requests:
+
+PewVista
+ Email: pewvista52@gmail.com
+
+© 2026 PewVista. All rights reserved.
+
+Third-Party Software Notices and Open-Source Licences
+ Version: Included with PewVista Installer and Application
+ Effective Date: 9 November 2026
+
+One important warning before release: verify the licence implications of obsws-python (GPL-3.0). If you distribute that library inside PewVista, it may affect how the entire application must be licensed. That is the one item in your current software stack that deserves a careful review before commercial release.
