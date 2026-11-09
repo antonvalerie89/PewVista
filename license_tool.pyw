@@ -64,9 +64,15 @@ def make_backup(parent_directory: Path) -> Path:
     shutil.copy2(PROJECT_ROOT / "scripts" / "restore_pewvista_backup.ps1", staging / "restore_pewvista_backup.ps1")
     (staging / "Restore PewVista.bat").write_bytes(RESTORE_BAT.encode("ascii"))
     (staging / "README - How to restore.txt").write_text(README_TEXT.format(today=date.today().strftime("%d %B %Y")), encoding="utf-8")
-    if target.exists():
-        shutil.rmtree(target)
-    staging.rename(target)
+    # Merge into an existing same-day folder: replace only this tool's files and never delete
+    # anything else (the publisher may have added a database export there).
+    target.mkdir(parents=True, exist_ok=True)
+    for item in staging.rglob("*"):
+        if item.is_file():
+            destination = target / item.relative_to(staging)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(item, destination)
+    shutil.rmtree(staging, ignore_errors=True)
     return target
 
 
