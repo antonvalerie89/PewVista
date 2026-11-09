@@ -1,0 +1,24 @@
+Offline spelling dictionaries
+
+Source: https://github.com/LibreOffice/dictionaries
+Retrieved: 2026-10-13
+
+English (South Africa): en/en_ZA.aff, en/en_ZA.dic, en/README_en_ZA.txt
+Afrikaans: af_ZA/af_ZA.aff, af_ZA/af_ZA.dic, af_ZA/README_af_ZA.txt
+Additional upstream licence notice: en/license.txt
+
+The upstream README files contain author credits and applicable licence terms.
+Keep these notices with the dictionary files when distributing the application.
+
+Python reader: spylls 0.1.7 (Hunspell-compatible, pure Python).
+Offline language detector: langid 1.1.6 (https://github.com/saffsd/langid.py).
+Install for development: .venv\Scripts\python.exe -m pip install spylls==0.1.7 langid==1.1.6
+The desktop build script installs missing dependencies and copies this resource folder.
+
+Auto mode counts language-specific dictionary words across the whole field,
+then uses the statistical detector when that evidence is tied.
+Only the selected language's dictionary supplies accepted words and suggestions.
+Short or ambiguous text may be misidentified; the right-click Spelling language
+menu lets users choose Auto, English, or Afrikaans for each field during the session.
+Empty text defaults to English. Ignore Word applies only to the current
+language, not both dictionaries. English grammar is disabled for Afrikaans fields.

@@ -1,0 +1,17 @@
+Bible file: Text-Critical Greek NT_html.zip
+Source provider: eBible.org
+Official source page: https://ebible.org/Scriptures/details.php?id=grctcgnt
+Source page: https://ebible.org/Scriptures/grctcgnt_html.zip
+Source verified: Yes
+Verified download path used: https://ebible.org/Scriptures/grctcgnt_html.zip
+Translation identifier: grctcgnt
+Imported into workspace: 2026-08-21
+
+Status:
+- Public domain Greek New Testament from eBible.org.
+- Title: Text-Critical Greek NT.
+- Format stored locally as eBible mobile HTML ZIP because this app reads that format directly in the Read Bible tab.
+
+Notes:
+- eBible.org describes this text as The New Testament in Ancient Greek with critical text notes.
+- The source page attributes the base text to Maurice A. Robinson, with contributor Robert Adam Boyd.

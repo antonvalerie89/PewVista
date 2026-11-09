@@ -1,0 +1,73 @@
+PEWVISTA - WINDOWS REQUIREMENTS
+
+Updated: 13 October 2026
+
+SUPPORTED ARCHITECTURE
+- 64-bit (x64) Windows only.
+- Windows 10 or Windows 11; Windows 11 is recommended. Keep Windows and graphics drivers updated.
+- The desktop package includes Python, portable Java, LanguageTool, spelling dictionaries, and the language detector. Separate Python or Java installations are not required to run the packaged app.
+- OBS Studio (the secondary-screen player) is not in the package. Setup reuses the program files of an OBS Studio 28 or newer already installed on the PC, or downloads the official OBS 32.1.2 release (about 185 MB) and checks it before use. An internet connection is needed during Setup, or the first time the secondary screen starts, on PCs without OBS. The church's own OBS settings are never changed.
+
+PRACTICAL MINIMUM FOR THE APP
+- Processor: 64-bit Intel or AMD, 4 cores, approximately 2 GHz or faster.
+- Memory: 8 GB RAM.
+- Graphics: DirectX 10.1-compatible GPU with a current driver, required by OBS. Integrated graphics can be sufficient for simple text and still-image output.
+- Free storage: At least 8 GB before downloading/extracting the package and using the app. Allow additional space for imported Bibles, videos, backgrounds, caches, and saved services.
+- Main display: 1280 x 800 or higher at 100% Windows scaling. The main layout targets an approximately 1280 x 760 working area; taskbars and higher scaling reduce available space.
+
+RECOMMENDED FOR REGULAR USE, ANIMATION, AND VIDEO
+- Processor: 4-core Intel Core i5 / AMD Ryzen 5 class or newer.
+- Memory: 16 GB RAM.
+- SSD storage with at least 15 GB free; more for a large media or Bible library.
+- Modern integrated or dedicated GPU. A dedicated GPU is preferable for high-resolution video, several displays, or simultaneous recording/streaming.
+- Main display: 1920 x 1080 or higher; use a scaling setting that leaves sufficient room for all controls.
+- For 4K media or heavy OBS workloads: a 6-core or better processor and 16-32 GB RAM are advisable.
+
+SECONDARY SCREEN / PROJECTOR
+- To present on a separate screen, connect a second monitor or projector through a compatible HDMI, DisplayPort, or other supported output.
+- Configure Windows to Extend the displays, not Duplicate them, for independent operator and audience views.
+- 1920 x 1080 secondary output is recommended. Larger resolutions and animated backgrounds need more graphics/CPU capacity.
+- All-users installs keep PewVista's private OBS program files in the program folder (Resourses\obs_portable) and give each Windows account its own writable OBS copy and profile under %LOCALAPPDATA%\PewVista\<church name>\obs_portable. OBS configuration is never written to Program Files. If Setup could not prepare OBS, the first secondary-screen launch downloads it into that per-account folder.
+
+OFFLINE SPELLING AND GRAMMAR
+- English and Afrikaans spelling and language detection work offline. Auto detection uses the field's text; short or ambiguous text may require a manual language choice.
+- English grammar uses a local LanguageTool process. Afrikaans grammar checking is not included.
+- LanguageTool's Java heap is capped at 512 MB; the process also uses memory outside that heap, so 512 MB is not its total RAM requirement.
+- No internet connection is needed for ordinary presentation, spelling, or grammar checking once the complete package is installed. URL imports, online translation lookups, and initial dependency downloads require internet.
+
+PACKAGE SIZE AND UPDATING
+- Latest verified package: approximately 2.36 GiB unpacked and 1.58 GiB as a ZIP. These are measurements of the current bundle, not fixed size limits; libraries and resources can increase them.
+- Customer installation: run PewVista Setup.exe directly; no manual ZIP extraction is needed. Approve the administrator prompt. Setup asks for the church name and an optional default background, installs the program under Program Files, and creates common Desktop/Start Menu shortcuts using the church name. Existing program folders are refused unless the Keep-data uninstaller left a valid reinstall marker, or the folder contains only known old app-data folders and matching shared app data in ProgramData. Reinstalls refresh program files, preserve databases/settings, and retain existing imported Bibles/backgrounds.
+- All Windows accounts share databases and settings under ProgramData\<church name>. Setup grants standard users access to this folder and writes the selected church name, shared-data path, and default background into installation.json. To migrate an existing app, provide its old Data folder when prompted; the old folder is copied without being deleted.
+- New installations use the current app appearance defaults for theme, application font/size, display font, outline, and text color. If the imported or existing shared Data folder already has ui_settings.json, those saved preferences are preserved instead.
+- Installation packages contain program/resources and approved reference dictionaries, not the developer's personal song, member, or service databases. Customer databases are created by the app; initial customer song content must be imported/entered separately.
+- Customer updates: in the installed app choose Update -> Install Update and select PewVista-Update-Windows-x64.zip. The app prepares it, closes, requests administrator approval to replace Program Files, backs up the configured ProgramData data, and restarts. No Python or build tools are needed on the receiving PC. The Update menu rejects Installation ZIPs and never replaces installation.json.
+- Cross-computer database transfer: use Data -> Export Databases to create a portable ZIP of selected Library, Members, Services, and Welcome Notes databases; on the other installation use Data -> Import Databases, select the databases to replace, and restart the app. Selected destination databases are backed up under ProgramData/.import-backups first. The ZIP includes database contents, not media files referenced by records.
+- Developer release build: run update_windows_app.bat. It creates PewVista Setup.exe plus separate PewVista Installation and Update ZIPs under dist\releases\latest using the isolated build\release-package\PewVista payload. One older release set is retained under dist\releases\previous. It does not replace the working app, launch it, or change production shortcuts.
+- build_desktop_app.bat only prepares the isolated payload. package_windows_release.ps1 can package that payload again without recompiling it.
+- Creator builds can also be started from Update -> Build Release (Creator). Select the source workspace when using a packaged app. The build window shows live output, current stage, elapsed time, and completion or failure; minimize it to continue using the app. Building does not replace the working EXE. Install Update remains a separate operation that applies an Update ZIP.
+- Allow at least 20 GB free for release creation and isolated testing, in addition to the existing project. Two ZIPs, staging output, and a test installation can coexist. Large libraries require more space. Compression can take several minutes.
+- Developer update test: run test_windows_update.bat. On first use it clones the current program from dist\PewVista and its configured shared data into dist\update-test\PewVista. Close the working app once before this copy so its databases are consistent. Future runs reuse the test copy rather than resetting it.
+- Only in the TEST COPY, use Update -> Install Update to install the new Update ZIP. Verify saved records, song edits, presentation, and restart before sending the same tested ZIP to customers. The production program/data remain unchanged. The new app title labels this installation [TEST COPY].
+- A previous app version without the Update menu needs one manual bootstrap first: close that app and bundled OBS, then extract a newly generated Update ZIP over its existing program folder without deleting its configured shared-data folder. For developer testing, bootstrap ONLY dist\update-test\PewVista, not the working copy. Later releases can be tested through the menu.
+- Normal Update ZIPs exclude Data, databases, installation.json, update backups, and test markers. Do not delete the customer's ProgramData folder or use fresh Setup to update an existing installation.
+- Update ZIPs also omit all Bible files already present in the preceding Installation ZIP; only newly added Bible paths from the creator's release payload are shipped as Bible updates. Fresh Installation ZIPs still include the current creator Bible set, and user-imported files with existing names are never overwritten by an update.
+- In-app update backups are stored in .update-backups inside the installed app folder. Keep them for recovery; they are excluded from normal update ZIPs. Installation failures are recorded in update-install.log, and replaced program files are restored where possible.
+- Regenerate update ZIPs after this change; older ZIPs may still contain databases and overwrite newer data when extracted.
+- create_windows_zip.ps1 -IncludeUserData explicitly creates a full-data package for a deliberate new installation/transfer. Never extract such a package over an existing installation's Data. Review saved/member data before sharing it.
+
+UNINSTALLING
+- Close this installation's app, bundled OBS, and grammar runtime. Open the installed program folder and double-click uninstall_windows_app.bat. There is no uninstall command in the application's GUI.
+- Confirm the displayed installation path, then choose Keep personal data (the default) or Remove personal data. Choosing Remove also requires typing DELETE before anything is removed.
+- Keep removes program files and this installation's shortcuts but leaves the shared ProgramData folder, imported files, and local update backups for recovery. The uninstaller reports the retained data path.
+- Keep also leaves an uninstall marker in the old Program Files folder. Setup recognizes only this marker to allow reinstalling into that folder and reconnects the existing ProgramData database; arbitrary existing folders remain blocked.
+- Remove permanently deletes the configured shared ProgramData folder and this installation's local data. External backups and unrelated files are not removed. Back up any records you want to retain before choosing this option.
+- The uninstaller refuses a development workspace, linked program/data folders, or an installation still in use. It does not remove shortcuts that point to another installation.
+- New Install and Update packages include the uninstall files. Generate a fresh release to deliver them to existing customers.
+
+These CPU, RAM, storage, and display figures are practical planning guidance, not certified hardware benchmarks or fixed OBS Studio minimums. Performance depends on media resolution/frame rate, scene complexity, available memory, and concurrent applications. Test the intended presentation workload on the target PC.
+
+32-BIT WINDOWS
+This release cannot be installed on 32-bit Windows. The secondary display starts obs64.exe, and the OBS runtime PewVista uses is x64-only. A separate 32-bit application would require replacing or removing that secondary-display runtime and rebuilding/testing every dependency for x86.
+
+Official OBS basic Windows requirements: https://obsproject.com/kb/system-requirements

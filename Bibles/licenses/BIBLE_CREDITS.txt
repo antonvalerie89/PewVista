@@ -1,0 +1,57 @@
+PewVista - Bible Credits and Licenses
+
+The Bibles included with PewVista are public domain or openly licensed.
+Their texts have been converted to PewVista's reading format only; the
+wording has not been changed. Bibles that a church imports itself with
+Add Bible remain under that Bible's own license and are not covered here.
+
+OPENLY LICENSED (credit required)
+
+Free Bible Version (FBV)
+  Copyright (c) 2018 Dr. Jonathan Gallagher.
+  Licensed under Creative Commons Attribution-ShareAlike 4.0
+  (https://creativecommons.org/licenses/by-sa/4.0). Source: eBible.org.
+
+SBL Greek New Testament (SBLGNT)
+  Copyright (c) 2010 Society of Biblical Literature and Logos Bible
+  Software. Licensed under Creative Commons Attribution 4.0
+  (https://creativecommons.org/licenses/by/4.0). Source: eBible.org.
+
+Biblica(R) Open Nueva Biblia Viva(TM) (Spanish)
+  Copyright (c) 2006, 2008 by Biblica, Inc. Licensed under Creative
+  Commons Attribution-ShareAlike 4.0. "Biblica" is a trademark registered
+  in the United States Patent and Trademark Office by Biblica, Inc. Used
+  with permission. The original Work by its copyright holders is available
+  for free at www.biblica.com and open.bible.
+
+PUBLIC DOMAIN (with name protection)
+
+World English Bible (WEB) and World Messianic Bible (WMB)
+  Public domain. "World English Bible" and "World Messianic Bible" are
+  trademarks; modified texts may not use these names. Source: eBible.org.
+
+PUBLIC DOMAIN
+
+  American Standard Version (1901); Bible in Basic English; Darby
+  Translation; Geneva Bible (1599); King James Version; Louis Segond 1910
+  (French); Luther Bible 1912 (German); Noah Webster Bible; Open English
+  Bible (US); Reina Valera 1909 (Spanish); Revised Version (1895); Young's
+  Literal Translation; Greek Majority Text NT; Greek New Testament -
+  Textus Receptus; Solid Rock Greek New Testament; Text-Critical Greek NT;
+  Tischendorf Greek NT; Westminster Leningrad Codex (Hebrew OT).
+  Sources: eBible.org.
+
+WORD STUDY DATA
+
+  Greek word forms: MorphGNT, licensed under Creative Commons
+  Attribution-ShareAlike 3.0; see Data\biblical_lexicon\
+  MORPHGNT_ATTRIBUTION.txt. Strong's Greek and Hebrew dictionaries:
+  public domain.
+
+NOT INCLUDED
+
+  Bible Society of South Africa translations (Afrikaans 1933/1953, 1983,
+  2020, and Bybel vir almal) are copyrighted and are not distributed with
+  PewVista. Churches may obtain them from the Bible Society of South
+  Africa (www.bybelgenootskap.co.za) and import them with Add Bible for
+  their own use, under the Bible Society's terms.

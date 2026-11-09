@@ -1,0 +1,30 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build customer Install and Update packages",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"update_windows_app.bat"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Launch isolated update test copy",
+			"type": "shell",
+			"command": "cmd",
+			"args": ["/c", "test_windows_update.bat"],
+			"options": {"cwd": "${workspaceFolder}"},
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		}
+	]
+}

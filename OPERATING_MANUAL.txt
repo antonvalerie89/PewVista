@@ -1,0 +1,72 @@
+PewVista - Operating Manual
+
+GETTING STARTED
+- Start PewVista from its desktop or Start Menu shortcut.
+- The main window is the control screen used by the operator. The live
+  screen is what the congregation sees on the second display.
+
+MENU OVERVIEW
+- Settings: a popup with two tabs. Main Screen sets the theme and the
+  operator window's font family, style, and size. Secondary Screen sets
+  the live display's script font, outline size, text color, and key size
+  (choose None to hide the song key on the live display).
+- History: reopen recently presented items.
+- Licenses: record your music/streaming license numbers so they can be
+  shown where required.
+- Data: open the background folder, export or import databases, and
+  export or import saved service days as transfer ZIP files.
+- Members: manage the member register.
+- Help: edit the church name, default background, and app icon, manage
+  the license and subscription, read this manual, the Terms and
+  Conditions, and the Security and Privacy statement, install a PewVista
+  update ZIP, and see the installed version.
+
+PRESENTING
+- Prepare a service day with the items you plan to present, then send an
+  item to the live screen when it is time.
+- Bible verses can be shown in more than one translation side by side.
+- Backgrounds can be still images, GIFs, or videos; place shared files in
+  the background folder (Data menu > Open Background Folder).
+
+THE LIVE (SECONDARY) DISPLAY
+- The live display runs through PewVista's own copy of OBS Studio, which
+  Setup prepares (an internet connection is needed on PCs without OBS).
+  Keep the second monitor or projector connected before starting a
+  presentation.
+- Settings > Secondary Screen controls how song and scripture text is drawn.
+
+YOUR DATA
+- Databases and settings are stored in the shared data folder chosen
+  during installation, and are preserved by updates and reinstalls.
+- Use Data > Export Databases... to make a portable backup ZIP, and
+  Import Databases... to restore or move it to another computer. When
+  member details are included you choose a password on export, and the
+  same password is needed to import them.
+
+UPDATES
+- Choose Help > Install Update..., select the update ZIP from a trusted
+  source, and accept the Terms and Conditions when asked.
+- The app closes while the update installs and restarts afterwards. Your
+  data, settings, and licenses are kept; changed files are backed up.
+
+LICENSE AND SUBSCRIPTION
+- PewVista starts with a 15-day free trial. The window title shows the
+  days left.
+- Subscribe with PayPal (US$10 per month) under Help > License and
+  Subscription. Enter the subscription ID PayPal emails you (it starts
+  with I-) and choose Activate. One subscription covers 2 PCs.
+- Each PC must connect to the internet at least once every 30 days to
+  renew its license automatically.
+- Without a license the app keeps working, but the live screen shows a
+  red NOT LICENSED marking.
+- To move the license to another PC, choose Remove from this PC first.
+
+TROUBLESHOOTING
+- If your church name, background, or icon is missing after an update, set
+  them again under Help > Church Name, Background and Icon. They are then
+  stored in the shared data folder, which updates never touch.
+- If the live screen does not appear, check the display cable and Windows
+  display settings, then restart the app.
+- If an update fails, the previous version is restored automatically from
+  its backup and your data is untouched.
+- The installed version number is shown under Help in the menu bar.

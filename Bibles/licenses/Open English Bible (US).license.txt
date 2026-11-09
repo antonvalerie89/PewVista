@@ -1,0 +1,16 @@
+Bible file: Open English Bible (US).pdf
+Source provider: eBible.org
+Source page: https://ebible.org/find/details.php?id=engoebus
+Download listing page: https://ebible.org/pdf/
+Verified download path used: https://ebible.org/pdf/engoebus/engoebus_all.pdf
+Translation identifier: engoebus
+
+Status:
+- Download URL was individually verified before download.
+- eBible.org identifies this translation as public domain.
+- The translation page attributes it to OpenEnglishBible.org.
+- The source page states: "Public Domain".
+
+Notes:
+- Translation name on source page: Open English Bible (U. S. spelling) / Open English Bible (US).
+- Keep this record with the Bible file for future conversion and audit work.

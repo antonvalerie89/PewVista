@@ -1,0 +1,13 @@
+Bible file: King James Version (KJV).pdf
+Source provider: eBible.org
+Source page: https://ebible.org/pdf/
+Verified download path used: https://ebible.org/pdf/eng-kjv/eng-kjv_all.pdf
+Translation identifier: eng-kjv
+
+Status:
+- Download URL was individually verified before download.
+- Exact license text for this specific translation was not separately captured into the workspace.
+- Treat as a source-hosted downloadable Bible for local storage and evaluation until exact redistribution terms are separately confirmed.
+
+Notes:
+- Keep this record with the Bible file for future conversion and audit work.

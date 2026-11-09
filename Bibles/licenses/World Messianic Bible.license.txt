@@ -1,0 +1,16 @@
+Bible file: World Messianic Bible.pdf
+Source provider: eBible.org
+Source page: https://ebible.org/find/details.php?id=engwmb
+Download listing page: https://ebible.org/pdf/
+Verified download path used: https://ebible.org/pdf/engwmb/engwmb_all.pdf
+Translation identifier: engwmb
+
+Status:
+- Download URL was individually verified before download.
+- eBible.org identifies this translation as public domain / not copyrighted.
+- The source page states "World Messianic Bible" is a trademark.
+- The source page allows copying, publishing, distributing, selling, printing, and public use without restriction, with the request that modified text not be called the World Messianic Bible.
+
+Notes:
+- Translation name on source page: World Messianic Bible.
+- This edition is described there as the American Messianic dialect / U.S.A. spelling edition.

@@ -1,0 +1,17 @@
+Bible file: SBL Greek NT_html.zip
+Source provider: eBible.org
+Official source page: https://ebible.org/Scriptures/details.php?id=grcsbl
+Source page: https://ebible.org/Scriptures/grcsbl_html.zip
+Source verified: Yes
+Verified download path used: https://ebible.org/Scriptures/grcsbl_html.zip
+Translation identifier: grcsbl
+Imported into workspace: 2026-08-21
+
+Status:
+- Greek New Testament from eBible.org.
+- Title: SBL Greek NT.
+- Format stored locally as eBible mobile HTML ZIP because this app reads that format directly in the Read Bible tab.
+
+Notes:
+- Copyright © 2010 Society of Biblical Literature and Logos Bible Software.
+- eBible.org lists this text under Creative Commons Attribution 4.0.

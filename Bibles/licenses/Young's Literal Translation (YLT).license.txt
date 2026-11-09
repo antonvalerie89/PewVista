@@ -1,0 +1,10 @@
+Bible file: Young's Literal Translation (YLT).pdf
+Source provider: eBible.org
+Source page: https://ebible.org/pdf/
+Verified download path used: https://ebible.org/pdf/engylt/engylt_all.pdf
+Translation identifier: engylt
+
+Status:
+- Download URL was individually verified before download.
+- Exact license text for this specific translation was not separately captured into the workspace.
+- Treat as a source-hosted downloadable Bible for local storage and evaluation until exact redistribution terms are separately confirmed.

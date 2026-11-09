@@ -1,0 +1,265 @@
+PewVista Terms and Conditions
+
+Effective Date: 8 November 2026
+
+Please read these Terms and Conditions carefully before installing, accessing, updating, subscribing to, or using PewVista.
+
+By selecting "I Accept", installing, updating, subscribing to, accessing, or using PewVista, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions. If you do not agree to these Terms and Conditions, you must not install, update, access, subscribe to, or use the software.
+
+1. Licence Grant
+
+PewVista is licensed, not sold.
+
+Subject to compliance with these Terms and Conditions and payment of any applicable fees, PewVista grants the customer a limited, non-exclusive, non-transferable licence to install and use the software for lawful purposes within their church, ministry, organisation, business, or personal environment.
+
+The customer may not:
+
+Reverse engineer, decompile, or modify the software except where permitted by applicable law.
+Resell, redistribute, rent, lease, sublicense, or commercially exploit the software without written permission from the developer.
+Remove copyright, trademark, or ownership notices.
+2. Subscription and Service Fees
+
+Certain features, services, updates, support plans, cloud services, or software access may require payment of subscription, support, licensing, hosting, maintenance, or service fees.
+
+Payment grants the customer a licence to use the software and associated services during the applicable subscription period.
+
+Failure to pay applicable fees may result in suspension or termination of:
+
+Software updates
+Technical support
+Cloud-based services
+Subscription features
+Hosted services
+
+Unless required by applicable law, all fees paid are non-refundable.
+
+3. Ownership and Intellectual Property
+
+PewVista, including all software, code, databases, designs, documentation, branding, graphics, interfaces, trademarks, and intellectual property rights, remains the exclusive property of the developer.
+
+Purchase, subscription, or use of the software does not transfer ownership rights to the customer.
+
+4. No Warranty
+
+PewVista is provided on an "as is" and "as available" basis.
+
+To the fullest extent permitted by law, the developer disclaims all warranties, whether express, implied, statutory, or otherwise, including but not limited to warranties of:
+
+Merchantability
+Fitness for a particular purpose
+Reliability
+Availability
+Accuracy
+Security
+Non-infringement
+Compatibility with specific equipment or software
+
+The developer does not guarantee that the software will operate without interruption, error, or failure.
+
+Use of the software is entirely at the customer's own risk.
+
+5. Limitation of Liability
+
+To the fullest extent permitted by applicable law, the developer, authors, contributors, affiliates, licensors, distributors, and suppliers shall not be liable for any direct, indirect, incidental, consequential, special, exemplary, or punitive damages arising from:
+
+Installation or use of the software
+Inability to use the software
+Service interruptions
+Data loss
+Corrupted files or databases
+Hardware failures
+Software conflicts
+Loss of income, donations, or revenue
+Missed services or events
+Copyright claims
+Licensing disputes
+Streaming or broadcasting activities
+User error
+Unauthorised access
+Security incidents
+
+The total liability of the developer shall not exceed the amount paid by the customer for the software or services during the twelve months preceding the claim.
+
+6. User Responsibility
+
+The customer is solely responsible for:
+
+Proper operation of the software
+Training users, staff, and volunteers
+Reviewing content before presentation or publication
+Maintaining backups
+Securing devices and networks
+Verifying all displayed information
+Compliance with local laws and regulations
+Maintaining required licences and permissions
+
+The developer accepts no responsibility for user actions, decisions, or content.
+
+7. Songs, Lyrics, and Copyright Compliance
+
+PewVista provides tools that allow users to store, organise, import, export, edit, search, manage, and display songs and lyrics.
+
+Classifications such as:
+
+Public Domain
+No Licence
+CCLI
+One Licence
+Copyrighted
+
+are provided solely as organisational features.
+
+These classifications:
+
+Do not verify copyright status.
+Do not confirm licence coverage.
+Do not constitute legal advice.
+Do not guarantee compliance with copyright laws.
+
+The customer is solely responsible for:
+
+Determining copyright ownership.
+Determining whether licences are required.
+Obtaining and maintaining licences.
+Reporting usage where required.
+Complying with copyright laws and licence agreements.
+
+PewVista does not verify the legality, ownership, licensing status, or copyright status of songs or lyrics entered into the software.
+
+8. Content Responsibility
+
+All songs, lyrics, media files, presentations, documents, images, videos, audio files, databases, sermon content, and other materials entered into, stored within, or displayed by PewVista remain the sole responsibility of the customer.
+
+The developer does not:
+
+Supply copyrighted song libraries.
+Supply copyright licences.
+Supply streaming licences.
+Verify user content.
+Monitor user content.
+Review user content.
+Approve user content.
+
+Customers are solely responsible for ensuring that all content used within the software is lawfully obtained and legally used.
+
+9. Streaming, Recording, and Broadcasting
+
+PewVista may be used alongside livestreaming, recording, projection, broadcasting, or presentation systems.
+
+The customer is solely responsible for obtaining all permissions, licences, and rights required for:
+
+Live streaming
+Video broadcasting
+Audio broadcasting
+Public performance
+Recording
+Reproduction
+Distribution
+Display of copyrighted materials
+
+The developer grants no copyright, performance, broadcast, streaming, recording, or reproduction rights through use of the software.
+
+10. User Data and Backups
+
+All user data remains the property of the customer.
+
+This includes but is not limited to:
+
+Song libraries
+Presentation data
+Media libraries
+Settings
+Notes
+Reports
+User-generated content
+
+Customers are responsible for maintaining their own backups and data protection procedures.
+
+The developer shall not be liable for:
+
+Lost data
+Corrupted data
+Damaged databases
+Failed backups
+Hardware failures
+Malware infections
+Operating system failures
+User mistakes
+11. Third-Party Software and Services
+
+PewVista may include, integrate with, launch, support, or interact with third-party software, services, libraries, plugins, APIs, Bible resources, and other external components.
+
+Examples may include:
+
+OBS Studio
+LanguageTool
+Java
+Bible translations
+Media tools
+
+All third-party components remain subject to their own licences and terms.
+
+The developer accepts no responsibility for the functionality, legality, support, licensing, availability, or performance of third-party products or services.
+
+12. Security
+
+The customer is responsible for maintaining the security of systems on which PewVista is installed and used.
+
+The developer is not responsible for damages or losses resulting from:
+
+Malware
+Viruses
+Hacking
+Unauthorised access
+Weak passwords
+Data breaches
+Network failures
+13. Indemnification
+
+The customer agrees to defend, indemnify, and hold harmless the developer, authors, contributors, licensors, distributors, and affiliates from any claims, actions, liabilities, damages, losses, penalties, costs, or legal expenses arising from:
+
+Use of the software
+Misuse of the software
+Copyright infringement
+Licence violations
+Streaming activities
+Broadcasting activities
+Use of unlicensed content
+Violation of laws or regulations
+Actions of employees, volunteers, contractors, or third parties using the software
+14. Updates and Modifications
+
+The developer may update, modify, improve, replace, suspend, or discontinue any feature or service at any time.
+
+Updated versions of the software may include revised Terms and Conditions.
+
+Continued use of PewVista after an update constitutes acceptance of any revised Terms and Conditions.
+
+15. International Use
+
+PewVista may be used worldwide.
+
+The customer is solely responsible for ensuring compliance with all applicable laws, regulations, licensing obligations, copyright requirements, taxation requirements, privacy laws, data protection laws, and broadcasting regulations within their jurisdiction.
+
+The developer makes no representation that the software complies with the laws or requirements of every country, territory, state, province, or jurisdiction.
+
+16. Severability
+
+If any provision of these Terms and Conditions is found to be invalid, unlawful, or unenforceable, that provision shall be enforced to the maximum extent permitted by law, and the remaining provisions shall remain in full force and effect.
+
+17. Entire Agreement
+
+These Terms and Conditions constitute the entire agreement between the customer and the developer concerning the use of PewVista and supersede all prior agreements, understandings, representations, or communications relating to the software.
+
+18. Contact Information
+
+For support, licensing enquiries, or questions regarding these Terms and Conditions:
+
+PewVista
+ Email: pewvista52@gmail.com
+
+Acceptance
+
+BY CLICKING "I ACCEPT", INSTALLING, SUBSCRIBING TO, UPDATING, ACCESSING, OR USING PEWVISTA, YOU ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTOOD, AND AGREED TO THESE TERMS AND CONDITIONS. IF YOU DO NOT AGREE TO THESE TERMS, DO NOT INSTALL, SUBSCRIBE TO, UPDATE, ACCESS, OR USE THE SOFTWARE.
+
+PewVista is a software platform only. Responsibility for content, copyright compliance, licensing compliance, streaming activities, data protection, legal compliance, and operational use remains solely with the customer.

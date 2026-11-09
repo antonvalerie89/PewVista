@@ -1,0 +1,10 @@
+Bible file: Revised Version (1895).pdf
+Source provider: eBible.org
+Source page: https://ebible.org/pdf/
+Verified download path used: https://ebible.org/pdf/eng-rv/eng-rv_all.pdf
+Translation identifier: eng-rv
+
+Status:
+- Download URL was individually verified before download.
+- Exact license text for this specific translation was not separately captured into the workspace.
+- Treat as a source-hosted downloadable Bible for local storage and evaluation until exact redistribution terms are separately confirmed.

@@ -1,0 +1,12 @@
+Bible file: Free Bible Version (FBV).pdf
+Source provider: eBible.org
+Source page: https://ebible.org/find/details.php?id=engfbv
+Download listing page: https://ebible.org/pdf/
+Verified download path used: https://ebible.org/pdf/engfbv/engfbv_all.pdf
+Translation identifier: engfbv
+
+Status:
+- Download URL was individually verified before download.
+- Copyright (c) 2018 Dr. Jonathan Gallagher.
+- The source page states this translation is available under Creative Commons Attribution Share-Alike 4.0.
+- The source page allows sharing, redistribution, and reasonable adaptations if attribution is included, changes are marked, and derivatives use the same license.

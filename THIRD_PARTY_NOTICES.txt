@@ -1,0 +1,48 @@
+PewVista - Third-Party Software Notices
+
+PewVista includes the third-party software listed below. Each component
+remains under its own license; nothing here changes those licenses. The
+full license texts are installed with PewVista at the locations shown.
+
+OBS STUDIO 32.1.2 (live secondary screen)
+  Copyright (c) the OBS Project contributors.
+  License: GNU General Public License version 2 (GPL-2.0-or-later).
+  License text (after Setup): Resourses\obs_portable\data\obs-studio\license\gplv2.txt
+  Complete corresponding source code for this exact version:
+    https://github.com/obsproject/obs-studio/releases/tag/32.1.2
+  PewVista does not ship OBS. Setup copies an OBS Studio already
+  installed on the PC, or downloads the official, unmodified OBS
+  release from the address above. PewVista controls OBS through
+  OBS's own remote-control interface and does not include OBS code in
+  PewVista itself.
+
+LANGUAGETOOL 6.6 (grammar checking, runs offline)
+  Copyright (c) Daniel Naber and LanguageTool contributors.
+  License: GNU Lesser General Public License version 2.1 (LGPL-2.1).
+  License text: Resourses\grammar\LanguageTool\COPYING.txt
+  Source code: https://github.com/languagetool-org/languagetool
+
+ECLIPSE TEMURIN JAVA RUNTIME 21.0.12 (used by LanguageTool)
+  Provided by the Eclipse Adoptium project.
+  License: GNU General Public License version 2 with the Classpath
+  Exception, and the third-party licenses listed in its legal folder.
+  License texts: Resourses\grammar\java\legal\
+  Source code: https://github.com/adoptium/jdk21u
+
+FFMPEG 7.1 (video background decoding, via imageio-ffmpeg)
+  Copyright (c) the FFmpeg developers.
+  License: GNU General Public License (this build includes GPL parts).
+  Source code: https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz
+
+PYTHON LIBRARIES AND RUNTIME
+  Python (PSF License), Tcl/Tk (BSD-style), Pillow (HPND), NumPy (BSD),
+  imageio and imageio-ffmpeg (BSD), obsws-python (GPL-3.0), spylls
+  (MPL-2.0), langid (BSD), SQLCipher via sqlcipher3 (BSD-style,
+  Zetetic LLC), cryptography (Apache-2.0 / BSD), PyInstaller bootloader
+  (GPL-2.0 with the PyInstaller bootloader exception).
+
+BIBLE TEXTS AND WORD-STUDY DATA
+  See Help > Bible Credits and Licenses.
+
+To request a copy of any source code listed here, contact PewVista at
+pewvista52@gmail.com.

@@ -1,0 +1,15 @@
+Source: eBible.org
+Site: https://ebible.org/pdf/
+Use in this project: downloaded PDF Bibles stored in the Bibles folder.
+
+Provider summary only:
+- This file describes the source site, not the final license status of each translation.
+- See the individual `*.license.txt` files in this folder for per-Bible trace records.
+
+Reason this source was used:
+- Public/open downloadable Bible PDFs are listed directly by translation.
+- Each file URL was verified before download.
+
+Operational note:
+- Use the translation listing page and direct translation PDF paths when adding more titles.
+- Store any future source-specific notes in this folder.

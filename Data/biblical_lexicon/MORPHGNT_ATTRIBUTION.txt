@@ -1,0 +1,9 @@
+MorphGNT SBLGNT Edition
+Source: https://github.com/morphgnt/sblgnt
+Citation: Tauber, J. K., ed. (2017), MorphGNT: SBLGNT Edition, Version 6.12.
+DOI: https://doi.org/10.5281/zenodo.376200
+
+The morphological parsing and lemmatization are licensed under CC BY-SA 3.0:
+https://creativecommons.org/licenses/by-sa/3.0/
+
+This application uses a derived normalized surface-form to lemma index generated from the MorphGNT *-morphgnt.txt files. Ambiguous surface forms that map to more than one lemma are excluded from the generated index.

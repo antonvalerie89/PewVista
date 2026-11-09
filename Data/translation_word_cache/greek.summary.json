@@ -1,0 +1,24 @@
+{
+  "total_words": 26786,
+  "completed_base": 26786,
+  "blank_any": 0,
+  "detail_complete": 73,
+  "strongs_mapped": 22756,
+  "multiple_english": 22654,
+  "multiple_afrikaans": 179,
+  "metadata": {
+    "dictionary_scope": "language",
+    "language_code": "el",
+    "source_ids": [
+      "Greek_Majority_Text_NT_29d67205f33e0627",
+      "Greek_New_Testament_Textus_Receptus_3ac3ecd43aac738d",
+      "SBL_Greek_NT_fb8976a42af7aeb9",
+      "Solid_Rock_Greek_New_Testament_3be885c2a757826e",
+      "Text_Critical_Greek_NT_981582a880b6ff0b",
+      "Tischendorf_Greek_NT_44f47605ae50b78e"
+    ],
+    "base_complete": true,
+    "deep_complete": false,
+    "detail_build_version": 6
+  }
+}

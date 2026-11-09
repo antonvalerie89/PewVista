@@ -1,0 +1,19 @@
+{
+  "total_words": 55684,
+  "completed_base": 55684,
+  "blank_any": 0,
+  "detail_complete": 109,
+  "strongs_mapped": 15108,
+  "multiple_english": 15146,
+  "multiple_afrikaans": 163,
+  "metadata": {
+    "dictionary_scope": "language",
+    "language_code": "he",
+    "source_ids": [
+      "Westminster_Leningrad_Codex_Hebrew_OT_5fec497f38cdd826"
+    ],
+    "base_complete": true,
+    "deep_complete": false,
+    "detail_build_version": 6
+  }
+}

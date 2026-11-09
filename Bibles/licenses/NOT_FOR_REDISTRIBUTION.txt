@@ -1,0 +1,20 @@
+# Bibles that must NOT be included in public PewVista downloads.
+# One Bible per line, written as the start of its file name (without "_html" or the
+# file extension). The build removes the matching files, folders, cache entries, and
+# license notes from the release, and refuses to package if any are still present.
+# Churches may still import these themselves with Add Bible for their own use.
+
+# Bible Society of South Africa: texts are copyrighted and "may not be otherwise
+# used, redistributed, or sold" (m.bibles.co.za terms).
+Afrikaans 1933-1953 (BSSA Mobile)
+Afrikaans 1983 (BSSA Mobile)
+Afrikaans 2020 (BSSA Mobile)
+Bybel vir almal (BSSA Mobile)
+
+# Afrikaans 1953 translation is still claimed by the Bible Society of South Africa;
+# Wordproject only "believes" its texts are public domain.
+Afrikaans Holy Bible (1953) - Wordproject
+
+# CC BY-NC-ND 4.0: no commercial distribution. Remove this line only if PewVista is
+# always given away free of charge.
+Greek NT Family 35

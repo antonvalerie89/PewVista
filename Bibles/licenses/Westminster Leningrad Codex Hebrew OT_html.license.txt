@@ -1,0 +1,16 @@
+﻿Bible file: Westminster Leningrad Codex Hebrew OT_html.zip
+Source provider: eBible.org
+Official source page: https://ebible.org/find/details.php?id=hboWLC
+Source page: https://ebible.org/Scriptures/hboWLC_html.zip
+Source verified: Yes
+Verified download path used: https://ebible.org/Scriptures/hboWLC_html.zip
+Imported into workspace: 2026-08-13
+
+Status:
+- Public domain Hebrew Old Testament from eBible.org.
+- Title: Westminster Leningrad Codex Hebrew OT.
+- Format stored locally as eBible mobile HTML ZIP because this app reads it more reliably than the Hebrew PDF.
+
+Notes:
+- eBible.org marks the WLC text as public domain.
+- Morphology/lemma metadata notes on the source page do not affect plain text reading in this app.
