@@ -6,15 +6,68 @@ Uses the private key in "%USERPROFILE%\\PewVista Signing"; never give this tool 
 from __future__ import annotations
 
 import re
+import shutil
 import tkinter as tk
+import zipfile
 from datetime import date, timedelta
 from pathlib import Path
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 
 import licensing
 
-RECORDS_PATH = Path(__file__).resolve().parent / "license_records.txt"
+PROJECT_ROOT = Path(__file__).resolve().parent
+RECORDS_PATH = PROJECT_ROOT / "license_records.txt"
 DURATIONS = {"1 month (31 days)": 31, "3 months (92 days)": 92, "6 months (183 days)": 183, "1 year (366 days)": 366}
+RESTORE_BAT = '@echo off\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0restore_pewvista_backup.ps1"\r\n'
+README_TEXT = """PEWVISTA BACKUP - {today}
+Keep this on a USB drive and a second place. Never share it or put it on GitHub.
+
+TO RESTORE: double-click "Restore PewVista.bat" in this folder.
+It puts back your signing keys, grammar checker, and license records.
+(On a new PC, download the project from GitHub to C:\\PewVista first:
+ https://github.com/antonvalerie89/PewVista)
+
+Contents:
+- PewVista Signing    your private keys (license codes and update signing) - MOST IMPORTANT
+- grammar.zip         grammar checker needed to build PewVista
+- license_records.txt your list of license codes issued (when present)
+
+Your church's own songs and members: in PewVista use Data > Export Databases...
+and keep that ZIP next to this backup.
+"""
+
+
+def make_backup(parent_directory: Path) -> Path:
+    """What: Create a dated, self-restoring backup folder of everything not on GitHub.
+
+    Why included: Losing the signing keys would stop license codes and updates for every church.
+    Where used: The Back Up Now button.
+    Returns: The backup folder path.
+    """
+    keys = licensing.default_signing_key_path().parent
+    if not keys.is_dir():
+        raise ValueError(f"Your signing keys were not found at {keys}.")
+    target = Path(parent_directory) / f"PewVista Backup {date.today().isoformat()}"
+    staging = target.with_name(target.name + ".partial")
+    if staging.exists():
+        shutil.rmtree(staging)
+    staging.mkdir(parents=True)
+    shutil.copytree(keys, staging / "PewVista Signing")
+    grammar = PROJECT_ROOT / "Resourses" / "grammar"
+    if grammar.is_dir():
+        with zipfile.ZipFile(staging / "grammar.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+            for path in grammar.rglob("*"):
+                if path.is_file():
+                    archive.write(path, path.relative_to(grammar))
+    if RECORDS_PATH.is_file():
+        shutil.copy2(RECORDS_PATH, staging / "license_records.txt")
+    shutil.copy2(PROJECT_ROOT / "scripts" / "restore_pewvista_backup.ps1", staging / "restore_pewvista_backup.ps1")
+    (staging / "Restore PewVista.bat").write_bytes(RESTORE_BAT.encode("ascii"))
+    (staging / "README - How to restore.txt").write_text(README_TEXT.format(today=date.today().strftime("%d %B %Y")), encoding="utf-8")
+    if target.exists():
+        shutil.rmtree(target)
+    staging.rename(target)
+    return target
 
 
 def create_code(pc_id: str, church: str, days: int) -> tuple[str, date]:
@@ -110,6 +163,23 @@ def main() -> None:
     ttk.Button(buttons, text="Create Code", command=on_create).pack(side="left")
     ttk.Button(buttons, text="Copy Code", command=copy_code).pack(side="left", padx=(8, 0))
     ttk.Button(buttons, text="View Records", command=open_records).pack(side="left", padx=(8, 0))
+
+    def back_up_now() -> None:
+        folder = filedialog.askdirectory(parent=root, title="Choose where to save the backup (for example your USB drive)")
+        if not folder:
+            return
+        root.configure(cursor="watch")
+        root.update()
+        try:
+            target = make_backup(Path(folder))
+        except (ValueError, OSError) as error:
+            messagebox.showerror("Back Up Now", str(error), parent=root)
+            return
+        finally:
+            root.configure(cursor="")
+        messagebox.showinfo("Back Up Now", f"Backup saved to:\n{target}\n\nTo restore on any PC, double-click 'Restore PewVista.bat' in that folder.", parent=root)
+
+    ttk.Button(buttons, text="Back Up Now", command=back_up_now).pack(side="left", padx=(8, 0))
 
     ttk.Separator(body).grid(row=9, column=0, columnspan=2, sticky="ew", pady=(16, 10))
     ttk.Label(body, text="Subscription price shown to churches (app, Terms and Conditions, manual):").grid(row=10, column=0, columnspan=2, sticky="w")
