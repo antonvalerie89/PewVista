@@ -276,11 +276,13 @@ try {
     }
     Set-UpdateStatus "Closing this application's secondary-screen player..."
     $obsRoots = @((Join-Path $InstallDirectory "Resourses\obs_portable"), (Join-Path $data "obs_portable"))
+    # Each Windows account runs its own copy under %LOCALAPPDATA%\PewVista\<data folder name>\obs_portable.
+    $privateObsPattern = '\\AppData\\Local\\PewVista\\' + [regex]::Escape((Split-Path -Leaf $data)) + '\\obs_portable\\'
     $obsProcesses = @(Get-CimInstance Win32_Process | Where-Object {
         $processPath = $_.ExecutablePath
-        $belongsToInstallation = $processPath -and @($obsRoots | Where-Object {
+        $belongsToInstallation = $processPath -and (($processPath -match $privateObsPattern) -or @($obsRoots | Where-Object {
             $processPath.StartsWith($_.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)
-        }).Count -gt 0
+        }).Count -gt 0)
         $belongsToInstallation
     })
     foreach ($processInfo in $obsProcesses) {

@@ -448,11 +448,14 @@ class WindowsUpdateTests(unittest.TestCase):
         if os.name != "nt" or shutil.which("powershell.exe") is None:
             self.skipTest("Windows PowerShell and Windows processes are required")
         stand_in = Path(os.environ["SystemRoot"]) / "System32/ping.exe"
+        private_root = self.base / "Users/operator/AppData/Local/PewVista"
         process_specs = (
             (self.installed / "Resourses/obs_portable/bin/64bit/obs64.exe", True),
             (self.shared_data / "obs_portable/bin/64bit/obs64.exe", True),
             (self.shared_data / "obs_portable/obs-plugins/64bit/obs-browser-page.exe", True),
             (self.shared_data / "obs_portable/bin/64bit/ffmpeg.exe", True),
+            (private_root / self.shared_data.name / "obs_portable/bin/64bit/obs64.exe", True),
+            (private_root / (self.shared_data.name + " Other") / "obs_portable/bin/64bit/obs64.exe", False),
             (self.shared_data / "obs_portable-other/bin/64bit/obs64.exe", False),
             (self.base / "Other OBS/bin/64bit/obs64.exe", False),
             (self.base / "Other OBS/bin/64bit/ffmpeg.exe", False),

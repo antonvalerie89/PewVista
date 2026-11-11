@@ -2751,6 +2751,9 @@ def build_ui() -> tk.Tk:
         font_value_factory=current_overlay_font_value,
         get_music_licenses=get_music_licenses,
     )
+    if getattr(sys, "frozen", False):
+        # Start OBS while the operator is still preparing, so the first live item is instant.
+        root.after(2000, mirror_controller.prewarm_secondary_output)
 
     for column_index, title in enumerate(top_titles):
         frame = tk.LabelFrame(container, text=title, bg=THEMES["Light"]["panel_bg"], padx=16, pady=16, bd=1, relief="solid", font=(selected_font_family.get(), selected_font_size.get(), FONT_STYLES[selected_font_style.get()]), labelanchor="n")

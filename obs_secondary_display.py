@@ -1821,6 +1821,25 @@ class ObsSecondaryDisplayController:
             return response
         return {}
 
+    def _popen_without_app_dll_directory(self, command: list[str], working_directory: Path) -> None:
+        """What: Start OBS without PewVista's own DLL folder in its DLL search path.
+
+        Why included: The packaged app sets its _internal folder as the DLL directory, which
+        child processes inherit; OBS then loaded PewVista's VCRUNTIME140.dll and, because OBS
+        keeps running, locked it so updates could not replace program files.
+        Where used: _launch_obs_if_needed().
+        Returns: None; restores the app's DLL directory afterwards.
+        """
+        frozen_dll_directory = getattr(sys, "_MEIPASS", None) if getattr(sys, "frozen", False) else None
+        kernel32 = ctypes.windll.kernel32 if sys.platform == "win32" else None
+        if kernel32 is not None and frozen_dll_directory:
+            kernel32.SetDllDirectoryW(None)
+        try:
+            subprocess.Popen(command, cwd=str(working_directory), creationflags=0)
+        finally:
+            if kernel32 is not None and frozen_dll_directory:
+                kernel32.SetDllDirectoryW(str(frozen_dll_directory))
+
     def _launch_obs_if_needed(self, obs_path: Path) -> None:
         """What: Connect to an existing websocket or launch OBS and wait for readiness.
 
@@ -1849,7 +1868,7 @@ class ObsSecondaryDisplayController:
             self.client = None
         self._close_stale_private_obs(obs_path)
         launch_command, working_directory = self._obs_launch_command(obs_path)
-        subprocess.Popen(launch_command, cwd=str(working_directory), creationflags=0)
+        self._popen_without_app_dll_directory(launch_command, working_directory)
         deadline = time.time() + 75.0
         last_error = None
         # OBS may need several seconds to load plugins and expose obs-websocket after process launch.
@@ -2021,11 +2040,25 @@ class ObsSecondaryDisplayController:
         """What: Ensure both the OBS websocket client and browser source are ready.
 
         Why included: State pushes require a configured source and active OBS runtime.
-        Where used: push_state() before state-server updates and projector opening.
+        Where used: push_state() before state-server updates and projector opening, and warm_up().
         Returns: None; setup errors propagate as ObsSecondaryDisplayError.
         """
         self._ensure_client()
         self._ensure_browser_source()
+
+    def warm_up(self) -> None:
+        """What: Start and connect OBS ahead of time without showing anything on screen.
+
+        Why included: OBS takes 15-35 seconds to start; doing it when the app opens means
+        the first item appears without that wait.
+        Where used: MirrorDisplayController.prewarm_secondary_output() at app startup.
+        Returns: None; failures are logged and retried by the first real push.
+        """
+        try:
+            self._ensure_runtime()
+        except Exception as error:
+            self.client = None
+            log_exception("obs_secondary_display.warm_up", error)
 
     def _coerce_int(self, value: object) -> int | None:
         """What: Convert a value to int while treating common invalid values as absent.
@@ -2537,4 +2570,5 @@ def create_obs_secondary_mirror_window(
         "close": controller.close,
         "is_alive": controller.is_alive,
         "state_poll_age": controller.state_poll_age,
+        "warm_up": controller.warm_up,
     }

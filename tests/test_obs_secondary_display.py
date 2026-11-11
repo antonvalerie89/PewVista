@@ -341,5 +341,38 @@ class InstalledObsPathTests(unittest.TestCase):
         self.assertIn(obs_module.OBS_DOWNLOAD_SHA256.upper(), helper)
 
 
+    def test_obs_launch_does_not_inherit_app_dll_directory(self) -> None:
+        """What: Reset the packaged app's DLL directory while starting OBS, then restore it.
+
+        Why included: OBS loaded PewVista's VCRUNTIME140.dll and locked it, so updates failed.
+        Where used: Update-lock regression.
+        Returns: None.
+        """
+        calls: list[object] = []
+        fake_kernel32 = type("K", (), {"SetDllDirectoryW": staticmethod(lambda value: calls.append(("dll", value)))})()
+        fake_windll = type("W", (), {"kernel32": fake_kernel32})()
+        with patch.object(obs_module.sys, "frozen", True, create=True), \
+                patch.object(obs_module.sys, "_MEIPASS", r"C:\App\_internal", create=True), \
+                patch.object(obs_module.sys, "platform", "win32"), \
+                patch.object(obs_module.ctypes, "windll", fake_windll, create=True), \
+                patch.object(obs_module.subprocess, "Popen", side_effect=lambda *a, **k: calls.append("popen")):
+            self.controller._popen_without_app_dll_directory(["obs64.exe"], self.root)
+        self.assertEqual(calls, [("dll", None), "popen", ("dll", r"C:\App\_internal")])
+
+    def test_warm_up_logs_failures_instead_of_raising(self) -> None:
+        """What: Keep app startup safe when OBS cannot be started early.
+
+        Why included: Warm-up runs in the background; the first real push retries and reports.
+        Where used: OBS pre-start regression.
+        Returns: None.
+        """
+        self.controller.client = object()
+        with patch.object(self.controller, "_ensure_runtime", side_effect=ObsSecondaryDisplayError("no OBS")), \
+                patch.object(obs_module, "log_exception") as logged:
+            self.controller.warm_up()
+        self.assertIsNone(self.controller.client)
+        logged.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()

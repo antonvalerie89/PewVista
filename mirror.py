@@ -1592,6 +1592,24 @@ class MirrorDisplayController:
                 pass
         return controller
 
+    def prewarm_secondary_output(self) -> None:
+        """What: Start OBS in the background so the first live item appears without waiting.
+
+        Why included: OBS start-up takes 15-35 seconds and used to delay the first push.
+        Where used: main.py shortly after the installed app opens.
+        Returns: None; runs on a daemon thread and never shows errors.
+        """
+        def run_warm_up() -> None:
+            started_at = time.perf_counter()
+            with self.secondary_push_lock:
+                controller = self.ensure_secondary_controller(show_error=False)
+                warm_up = controller.get("warm_up") if isinstance(controller, dict) else None
+                if callable(warm_up):
+                    warm_up()
+            log_timing("mirror.prewarm_secondary", (time.perf_counter() - started_at) * 1000.0, threshold_ms=20.0)
+
+        threading.Thread(target=run_warm_up, name="MirrorSecondaryWarmUp", daemon=True).start()
+
     def set_hot_backgrounds(self, background_paths: list[Path | str | None]) -> None:
         """What: Store likely upcoming background paths and forward them to OBS if ready.
 
