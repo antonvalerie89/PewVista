@@ -219,6 +219,9 @@ CONTENTS
 - Without a license, PewVista keeps working, but the live screen shows a
   red NOT LICENSED marking. Your data is never deleted.
 - Remove from this PC frees the license so it can be used on another PC.
+- Reminder: in the last 10 days before a license expires, a reminder
+  appears once each time PewVista opens, counting down the days. Choose
+  Yes to open License and Subscription and renew.
 
 20. UPDATES
 - PewVista checks for updates about once a day and asks before
@@ -228,6 +231,9 @@ CONTENTS
 - The app and OBS close while the update installs, and PewVista restarts
   afterwards. Your data, settings, and licenses are kept, and changed
   files are backed up first.
+- The update (and Setup when reinstalling) automatically closes any
+  program that is using PewVista's files, such as OBS or the grammar
+  checker, and retries a locked file instead of failing.
 - The installed version is shown at the bottom of the Help menu.
 
 21. TROUBLESHOOTING
