@@ -2546,6 +2546,26 @@ def build_ui() -> tk.Tk:
 
         ttk.Button(body, text="Copy ID", command=copy_machine_id).grid(row=4, column=1, padx=(8, 0), pady=(12, 0))
 
+        def show_manual_license_steps() -> None:
+            """What: Explain how to get and activate a license without PayPal.
+
+            Why included: Churches paying by EFT need clear steps to receive a license code.
+            Where used: The How to Get a License button.
+            Returns: None.
+            """
+            messagebox.showinfo("How to Get a License", (
+                f"Price: {licensing.get_price_text()} per church, covering up to {licensing.MAX_DEVICES} PCs.\n\n"
+                "1. Pay PewVista by EFT. Email pewvista52@gmail.com for the banking details.\n"
+                "2. On this PC, click Copy ID. It copies the church name and this PC's ID.\n"
+                "3. Paste it into an email or WhatsApp message to PewVista, with your proof of payment. "
+                f"For a second PC, repeat steps 2 and 3 on that PC.\n"
+                "4. PewVista replies with a license code for each PC.\n"
+                "5. Paste the code into the box above and click Activate. No internet is needed.\n\n"
+                "The red NOT LICENSED marking disappears immediately. Before the code expires, "
+                "pay again and you will receive a new code."), parent=dialog)
+
+        ttk.Button(body, text="How to Get a License", command=show_manual_license_steps).grid(row=4, column=2, padx=(8, 0), pady=(12, 0))
+
         def refresh_status() -> None:
             """What: Show the current license state in the dialog and window title.
 

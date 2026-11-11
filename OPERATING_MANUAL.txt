@@ -1,72 +1,242 @@
 PewVista - Operating Manual
 
-GETTING STARTED
+CONTENTS
+1. Getting Started
+2. The Main Window
+3. Planning a Service (Info Panel)
+4. The Display Queue
+5. Welcome Tab
+6. Library Tab (Songs)
+7. Preparation Tab
+8. Bible Tab
+9. Add Bible Tab
+10. Translation Tab
+11. The Live (Secondary) Screen
+12. Saved Services and History
+13. Printing
+14. Members
+15. Music Licenses
+16. Settings
+17. Your Data: Backups, Export, and Import
+18. Church Name, Background, and Icon
+19. License and Subscription
+20. Updates
+21. Troubleshooting
+
+
+1. GETTING STARTED
 - Start PewVista from its desktop or Start Menu shortcut.
 - The main window is the control screen used by the operator. The live
-  screen is what the congregation sees on the second display.
+  (secondary) screen is what the congregation sees on the second monitor
+  or projector.
+- Before a service, connect the projector and set Windows to Extend the
+  displays (Windows key + P > Extend), not Duplicate.
+- New installations include a 15-day free trial with all features. The
+  window title shows the days left.
 
-MENU OVERVIEW
-- Settings: a popup with two tabs. Main Screen sets the theme and the
-  operator window's font family, style, and size. Secondary Screen sets
-  the live display's script font, outline size, text color, and key size
-  (choose None to hide the song key on the live display).
-- History: reopen recently presented items.
-- Licenses: record your music/streaming license numbers so they can be
-  shown where required.
-- Data: open the background folder, export or import databases, and
-  export or import saved service days as transfer ZIP files.
-- Members: manage the member register.
-- Help: edit the church name, default background, and app icon, manage
-  the license and subscription, read this manual, the Terms and
-  Conditions, and the Security and Privacy statement, install a PewVista
-  update ZIP, and see the installed version.
+2. THE MAIN WINDOW
+- Top row, three panels:
+  - Info: the service date, time, and preacher, with Save and Print.
+  - Secondary Screen: a live preview of what the congregation sees, and
+    the switch that turns the live screen on or off.
+  - Actions: saved services and quick actions for the current service.
+- Bottom area: the content tabs - Display, Welcome, Library, Preparation,
+  Bible, Add Bible, and Translation.
+- Menu bar: Settings, History, Licenses, Data, Members, and Help.
 
-PRESENTING
-- Prepare a service day with the items you plan to present, then send an
-  item to the live screen when it is time.
-- Bible verses can be shown in more than one translation side by side.
-- Backgrounds can be still images, GIFs, or videos; place shared files in
-  the background folder (Data menu > Open Background Folder).
+3. PLANNING A SERVICE (INFO PANEL)
+- Choose the service date with the calendar (Month, Year, Today, Apply).
+- Choose the time slot (for example Morning or Evening) and enter the
+  preacher's name.
+- Add items from the content tabs with Send to Display. They appear in
+  the Display queue in order.
+- Click Save to store the service so it can be recalled later. Click
+  Print to print the order of service (see section 13).
 
-THE LIVE (SECONDARY) DISPLAY
-- The live display runs through PewVista's own copy of OBS Studio, which
-  Setup prepares (an internet connection is needed on PCs without OBS).
-  Keep the second monitor or projector connected before starting a
-  presentation.
-- Settings > Secondary Screen controls how song and scripture text is drawn.
+4. THE DISPLAY QUEUE (DISPLAY TAB)
+- The Display Queue lists every item planned for the service: welcome
+  notes, songs, preparation blocks, and Bible passages.
+- Select an item to see it in the preview; it is shown live when the
+  secondary screen is on.
+- Down and Up change the order; Remove takes an item out of the queue.
+- Previous and Next step through the slides (verses, blocks, or pages) of
+  the selected item. Use these during the service.
+- Refresh reloads the queue if another tab changed it.
 
-YOUR DATA
-- Databases and settings are stored in the shared data folder chosen
-  during installation, and are preserved by updates and reinstalls.
-- Use Data > Export Databases... to make a portable backup ZIP, and
-  Import Databases... to restore or move it to another computer. When
-  member details are included you choose a password on export, and the
-  same password is needed to import them.
+5. WELCOME TAB
+- Welcome Notes: write, save, and reuse welcome messages. Use New, Save,
+  and Delete to manage them.
+- Upcoming Birthdays: lists members with birthdays coming up, taken from
+  the Members register.
+- Birthday Message: the text shown with the birthday names.
+- Combine Birthdays With Welcome Text: shows the welcome note and the
+  birthdays together on one screen.
+- Activate Scroll: scrolls long text slowly upwards on the live screen.
+- Background: choose the image or video behind the welcome text.
+- Preview shows the result; Send to Display adds it to the queue.
 
-UPDATES
-- Choose Help > Install Update..., select the update ZIP from a trusted
-  source, and accept the Terms and Conditions when asked.
-- The app closes while the update installs and restarts afterwards. Your
-  data, settings, and licenses are kept; changed files are backed up.
+6. LIBRARY TAB (SONGS)
+- Library Songs: the song list. Type in the search box to filter by
+  title. A starter set of public-domain hymns is included.
+- Song Editor fields:
+  - Title, Key, Author, and Year.
+  - Music License: Public Domain, CCLI, OneLicense, Individual, or
+    Copyrighted. For Individual, a License info box appears for the
+    license details. Public Domain songs show no license line on screen.
+  - Background: the image or video used for this song.
+  - Verses: each verse or chorus is one slide. Use Add Verse to add
+    slides and Remove to delete one.
+- New Song starts an empty song, Save stores it, Clear empties the
+  editor, and Delete removes the song from the library.
+- Show Live puts the selected song straight on the live screen; Send to
+  Display adds it to the queue.
+- For licensed songs, the live screen shows the song key, title, author,
+  and your church's license number in the corner, as required by
+  licensing bodies. Record the numbers under Licenses (section 15).
 
-LICENSE AND SUBSCRIPTION
-- PewVista starts with a 15-day free trial. The window title shows the
-  days left.
-- Subscribe with PayPal ({PRICE}) under Help > License and
-  Subscription. Enter the subscription ID PayPal emails you (it starts
-  with I-) and choose Activate. One subscription covers 2 PCs.
-- Each PC must connect to the internet at least once every 30 days to
-  renew its license automatically.
-- Without a license the app keeps working, but the live screen shows a
-  red NOT LICENSED marking.
-- To move the license to another PC, choose Remove from this PC first.
+7. PREPARATION TAB
+- Use this for sermon points, announcements, or any free text.
+- Theme Header: the heading shown at the top of the screen.
+- Text Block: the text for one slide. Display Blocks lists the slides.
+- Background: the image or video behind the text.
+- Preview / Details shows the result; Send to Display adds it to the
+  queue.
 
-TROUBLESHOOTING
-- If your church name, background, or icon is missing after an update, set
-  them again under Help > Church Name, Background and Icon. They are then
-  stored in the shared data folder, which updates never touch.
-- If the live screen does not appear, check the display cable and Windows
-  display settings, then restart the app.
-- If an update fails, the previous version is restored automatically from
-  its backup and your data is untouched.
-- The installed version number is shown under Help in the menu bar.
+8. BIBLE TAB
+- Bible Comparison: show one passage in up to three translations side by
+  side.
+- Select Bibles: choose which translations to compare.
+- Book, Chapter, Start, and End: choose the passage.
+- Background: the image or video behind the verses.
+- Send to Display adds the passage to the queue. Use Previous and Next in
+  the Display tab to move through the verses.
+- Only Bibles that may be shown in public are included. See Help > Bible
+  Credits and Licenses.
+
+9. ADD BIBLE TAB
+- Import Bible Files: add a Bible from a file on this computer.
+- Import From URL: download a Bible from a web address.
+- Refresh updates the list; Open Folder shows the Bible files.
+- Selected Bible shows the type, size, source, and license record.
+- License tools: Create License Note, Open License Note, Open Licenses,
+  and Source Verified record that you have permission to display the
+  Bible. Only import Bibles your church is allowed to use.
+- Online Discoveries lists Bibles found online with their publisher and
+  status.
+
+10. TRANSLATION TAB
+- Study the original Greek and Hebrew words of a verse.
+- Choose the Bible, Book, Chapter, and Verse.
+- The table shows each Original Word with its English Meaning and
+  Afrikaans Meaning.
+
+11. THE LIVE (SECONDARY) SCREEN
+- Turn the live screen on with the switch in the Secondary Screen panel.
+- PewVista shows the live screen through its own copy of OBS Studio.
+  Setup prepares OBS; on PCs without OBS an internet connection is needed
+  during Setup or the first time the live screen starts.
+- PewVista starts OBS quietly when it opens, so the first item appears
+  quickly. OBS appears in the system tray, not as a window.
+- Keep the projector connected before turning the live screen on.
+- Settings > Secondary Screen sets the font, outline size, text color,
+  and key size for the live screen.
+- Without a license, the live screen shows a red NOT LICENSED marking
+  (see section 19).
+
+12. SAVED SERVICES AND HISTORY
+- Saved Services (Actions panel) lists services saved for the selected
+  date. Recall Selected loads a saved service into the Display queue.
+- History > Open History shows earlier services with their details.
+  Recall Selected loads one; Delete Selected Service... removes it.
+
+13. PRINTING
+- Print (Info panel) opens the Print Display Queue window.
+- Choose the Printer and the Content: the Selected item or the Entire
+  queue.
+- Song Lists prints song titles only; Text Size sets the print size.
+- Preview shows each page (use Previous and Next); set Copies, then
+  click Print.
+
+14. MEMBERS
+- Members (menu bar) opens the member register: Members List, Member
+  Details, and Members Actions.
+- New Member clears the form; Add Member saves a new person; Update
+  Member saves changes; Remove Member deletes the selected person.
+- Birthdays entered here appear in the Welcome tab.
+- Member details are encrypted on this computer. Protect access to the
+  PC with a Windows password.
+
+15. MUSIC LICENSES
+- Licenses (menu bar) records your church's CCLI License Number and
+  OneLicense Number.
+- These numbers are shown on the live screen with licensed songs.
+- Add Later closes the window without saving.
+
+16. SETTINGS
+- Settings (menu bar) has two tabs:
+  - Main Screen: the theme and the operator window's font family, style,
+    and size.
+  - Secondary Screen: the live screen's font, outline size, text color,
+    and key size. Choose None to hide the song key on the live screen.
+
+17. YOUR DATA: BACKUPS, EXPORT, AND IMPORT
+- All songs, services, members, and settings are stored on this computer
+  in the shared data folder chosen during installation. Updates and
+  reinstalls keep them.
+- PewVista makes an automatic daily backup in that folder.
+- Data > Open Background Folder: add your own images and videos for
+  backgrounds. Still images, GIFs, and videos are supported.
+- Data > Export Databases...: saves a ZIP with the databases you select
+  (Select All or Select None). When members are included you choose a
+  password, and the same password is needed to import them.
+- Data > Import Databases...: restores a ZIP or moves data to another
+  computer. Choose the Import mode for each database.
+- Data > Export Service Day(s)... and Import Service Day(s)...: move
+  selected saved services to another computer.
+- Keep a recent export on a USB drive or another computer.
+
+18. CHURCH NAME, BACKGROUND, AND ICON
+- Help > Church Name, Background and Icon... sets the church name shown
+  in the window title, the default background, and the app icon (.ico).
+- Use Browse... to choose a file and Clear to return to the PewVista
+  default. Changes apply immediately and survive updates.
+
+19. LICENSE AND SUBSCRIPTION
+- PewVista starts with a 15-day free trial on each PC.
+- A subscription costs {PRICE} and covers 2 PCs.
+- Open Help > License and Subscription... to see the license status.
+- How to Get a License explains the steps. In short:
+  - Pay PewVista (EFT; email pewvista52@gmail.com for banking details).
+  - Click Copy ID and send the copied text (church name and PC ID) with
+    your proof of payment to PewVista. Do this on each PC.
+  - Paste the license code you receive into the box and click Activate.
+- PayPal subscriptions: enter the subscription ID PayPal emails you
+  (starts with I-) and click Activate, where available. These PCs must
+  connect to the internet at least once every 30 days.
+- Without a license, PewVista keeps working, but the live screen shows a
+  red NOT LICENSED marking. Your data is never deleted.
+- Remove from this PC frees the license so it can be used on another PC.
+
+20. UPDATES
+- PewVista checks for updates about once a day and asks before
+  installing. Help > Check for Updates... checks immediately.
+- Help > Install Update... installs an update ZIP you received from
+  PewVista. Accept the Terms and Conditions when asked.
+- The app and OBS close while the update installs, and PewVista restarts
+  afterwards. Your data, settings, and licenses are kept, and changed
+  files are backed up first.
+- The installed version is shown at the bottom of the Help menu.
+
+21. TROUBLESHOOTING
+- Church name, background, or icon missing after an update: set them
+  again under Help > Church Name, Background and Icon.
+- Live screen does not appear: check the projector cable and that
+  Windows is set to Extend, then turn the live screen off and on again,
+  or restart PewVista.
+- "OBS Studio is not on this PC yet": connect to the internet and start
+  the live screen again; PewVista downloads OBS (about 185 MB).
+- An update fails: the previous version is restored automatically and
+  your data is untouched. Close PewVista, wait a minute, and try again.
+- Red NOT LICENSED marking: see section 19.
+- For help, email pewvista52@gmail.com with the version number from the
+  Help menu.
