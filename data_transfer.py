@@ -266,7 +266,7 @@ def _canonical_value(column: str, value: object) -> object:
     """
     if value is None:
         return None
-    if column in {"verses_json", "font_settings_json", "welcome_settings", "display_tab_items",
+    if column in {"verses_json", "verse_types_json", "font_settings_json", "welcome_settings", "display_tab_items",
                   "presentation_settings", "display_settings", "settings_json"}:
         try:
             return json.dumps(json.loads(str(value)), ensure_ascii=False, sort_keys=True, separators=(",", ":"))

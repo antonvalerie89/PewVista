@@ -55,6 +55,13 @@ set "AUTO_UPDATE_CHECK_RESULT=%ERRORLEVEL%"
 popd
 if not "%AUTO_UPDATE_CHECK_RESULT%"=="0" exit /b %AUTO_UPDATE_CHECK_RESULT%
 
+echo Running song part regression tests...
+pushd "%~dp0"
+"%PYTHON_EXE%" -m unittest discover -s tests -p test_song_parts.py
+set "SONG_PARTS_CHECK_RESULT=%ERRORLEVEL%"
+popd
+if not "%SONG_PARTS_CHECK_RESULT%"=="0" exit /b %SONG_PARTS_CHECK_RESULT%
+
 echo [4/5] Running backend reliability smoke test...
 "%PYTHON_EXE%" "%~dp0reliability_smoke_test.py"
 if errorlevel 1 exit /b 1

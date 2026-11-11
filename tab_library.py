@@ -238,7 +238,8 @@ def ensure_library_schema() -> None:
                 license_provider TEXT NOT NULL DEFAULT '',
                 author TEXT NOT NULL DEFAULT '',
                 year TEXT NOT NULL DEFAULT '',
-                license_info TEXT NOT NULL DEFAULT ''
+                license_info TEXT NOT NULL DEFAULT '',
+                verse_types_json TEXT NOT NULL DEFAULT '[]'
             )
             """
         )
@@ -255,6 +256,8 @@ def ensure_library_schema() -> None:
             connection.execute("ALTER TABLE songs ADD COLUMN year TEXT NOT NULL DEFAULT ''")
         if "license_info" not in song_columns:
             connection.execute("ALTER TABLE songs ADD COLUMN license_info TEXT NOT NULL DEFAULT ''")
+        if "verse_types_json" not in song_columns:
+            connection.execute("ALTER TABLE songs ADD COLUMN verse_types_json TEXT NOT NULL DEFAULT '[]'")
         connection.execute(
             "CREATE TABLE IF NOT EXISTS imported_song_pack_songs (song_ref TEXT PRIMARY KEY, imported_at TEXT NOT NULL)"
         )
@@ -313,15 +316,19 @@ def parse_song_pack(text: str) -> list[dict[str, object]]:
     for song in songs:
         chorus = next((content for kind, content in song["blocks"] if kind == "[chorus]"), "")
         verses: list[str] = []
+        verse_types: list[str] = []
         for kind, content in song["blocks"]:
             if kind == "[verse]":
                 verses.append(content)
+                verse_types.append("Verse")
                 if chorus:
                     verses.append(chorus)
+                    verse_types.append("Chorus")
         if not verses and chorus:
             verses.append(chorus)
+            verse_types.append("Chorus")
         if song["title"] and verses:
-            parsed.append({"title": song["title"], "author": song["author"], "year": song["year"], "verses": verses})
+            parsed.append({"title": song["title"], "author": song["author"], "year": song["year"], "verses": verses, "verse_types": verse_types})
     return parsed
 
 
@@ -351,14 +358,20 @@ def import_song_packs(directories: list[Path] | None = None) -> int:
                 for song in songs:
                     song_ref = "song:" + str(song["title"]).strip().casefold()
                     if song_ref in done:
+                        # Hymns imported before part types existed: mark choruses if still unedited.
+                        connection.execute(
+                            "UPDATE songs SET verse_types_json = ? WHERE LOWER(title) = LOWER(?) AND verse_types_json = '[]' AND verses_json = ?",
+                            (json.dumps(song.get("verse_types") or [], ensure_ascii=False), song["title"], json.dumps(song["verses"], ensure_ascii=False)),
+                        )
                         continue
                     if str(song["title"]).strip().casefold() not in titles:
                         connection.execute(
                             """
-                            INSERT INTO songs (title, song_key, verses_json, created_at, updated_at, background_path, font_settings_json, license_provider, author, year, license_info)
-                            VALUES (?, '', ?, ?, ?, '', '{}', '', ?, ?, '')
+                            INSERT INTO songs (title, song_key, verses_json, created_at, updated_at, background_path, font_settings_json, license_provider, author, year, license_info, verse_types_json)
+                            VALUES (?, '', ?, ?, ?, '', '{}', '', ?, ?, '', ?)
                             """,
-                            (song["title"], json.dumps(song["verses"], ensure_ascii=False), timestamp, timestamp, song["author"], song["year"]),
+                            (song["title"], json.dumps(song["verses"], ensure_ascii=False), timestamp, timestamp, song["author"], song["year"],
+                             json.dumps(song.get("verse_types") or [], ensure_ascii=False)),
                         )
                         titles.add(str(song["title"]).strip().casefold())
                         inserted += 1
@@ -387,7 +400,7 @@ def load_all_songs() -> list[dict[str, object]]:
     with connect_library_db() as connection:
         connection.row_factory = sqlite3.Row
         rows = connection.execute(
-            "SELECT id, title, song_key, verses_json, created_at, updated_at, background_path, font_settings_json, license_provider, author, year, license_info FROM songs ORDER BY LOWER(title), id"
+            "SELECT id, title, song_key, verses_json, created_at, updated_at, background_path, font_settings_json, license_provider, author, year, license_info, verse_types_json FROM songs ORDER BY LOWER(title), id"
         ).fetchall()
     songs: list[dict[str, object]] = []
     for row in rows:
@@ -398,6 +411,7 @@ def load_all_songs() -> list[dict[str, object]]:
                 "title": row["title"],
                 "song_key": row["song_key"],
                 "verses": verses,
+                "verse_types": parse_verse_types_json(row["verse_types_json"], len(verses)),
                 "created_at": row["created_at"],
                 "updated_at": row["updated_at"],
                 "background_path": row["background_path"],
@@ -430,10 +444,58 @@ def parse_verses_json(payload: str | None) -> list[str]:
     return [str(item).strip() for item in parsed if str(item).strip()]
 
 
-def save_song_record(song_id: int | None, title: str, song_key: str, verses: list[str], background_path: str, license_provider: str = "", author: str = "", year: str = "", license_info: str = "") -> int:
+SONG_PART_TYPES = ("Verse", "Chorus", "Pre-Chorus", "Bridge", "Refrain", "Intro", "Outro", "Tag", "Ending")
+
+
+def normalize_part_type(value: object) -> str:
+    """What: Map any saved or typed song-part name to one of SONG_PART_TYPES.
+
+    Why included: Old songs and imports may hold blank or unknown part names.
+    Where used: Loading, saving, and the editor's part dropdown.
+    Returns: A known part type; "Verse" when unknown.
+    """
+    text = str(value or "").strip().casefold()
+    return next((part for part in SONG_PART_TYPES if part.casefold() == text), "Verse")
+
+
+def parse_verse_types_json(payload: str | None, verse_count: int) -> list[str]:
+    """What: Decode saved part types and align them with the song's verses.
+
+    Why included: Songs saved before part types existed have none; they default to Verse.
+    Where used: load_all_songs().
+    Returns: Exactly verse_count part types.
+    """
+    try:
+        parsed = json.loads(payload or "[]")
+    except json.JSONDecodeError:
+        parsed = []
+    parts = [normalize_part_type(item) for item in parsed] if isinstance(parsed, list) else []
+    return (parts + ["Verse"] * verse_count)[:verse_count]
+
+
+def describe_song_parts(part_types: list[str]) -> list[str]:
+    """What: Build slide names such as "Verse 1", "Chorus", "Verse 2", "Bridge".
+
+    Why included: The Display queue and live navigation show what each slide is.
+    Where used: Send to Display and Show Live.
+    Returns: One display name per part; only verses are numbered.
+    """
+    names: list[str] = []
+    verse_number = 0
+    for part in part_types:
+        part = normalize_part_type(part)
+        if part == "Verse":
+            verse_number += 1
+            names.append(f"Verse {verse_number}")
+        else:
+            names.append(part)
+    return names
+
+
+def save_song_record(song_id: int | None, title: str, song_key: str, verses: list[str], background_path: str, license_provider: str = "", author: str = "", year: str = "", license_info: str = "", verse_types: list[str] | None = None) -> int:
     """Insert a new song or update an existing song record.
 
-    What: Serializes verses, timestamps, license provider and information, author, and year.
+    What: Serializes verses, their part types, timestamps, license provider and information, author, and year.
     Why included: Editor saves need one transactional persistence boundary.
     Where used: save_current_song() after validating the title.
     Returns: Persistent database ID for inserted or updated record.
@@ -441,6 +503,7 @@ def save_song_record(song_id: int | None, title: str, song_key: str, verses: lis
     ensure_library_schema()
     timestamp = datetime.now().replace(microsecond=0).isoformat()
     verses_json = json.dumps(verses, ensure_ascii=False)
+    verse_types_json = json.dumps([normalize_part_type(part) for part in (verse_types or [])][:len(verses)], ensure_ascii=False)
     normalized_provider = normalize_license_provider(license_provider)
     normalized_author = str(author or "").strip()
     normalized_year = str(year or "").strip()
@@ -449,20 +512,20 @@ def save_song_record(song_id: int | None, title: str, song_key: str, verses: lis
         if song_id is None:
             cursor = connection.execute(
                 """
-                INSERT INTO songs (title, song_key, verses_json, created_at, updated_at, background_path, font_settings_json, license_provider, author, year, license_info)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO songs (title, song_key, verses_json, created_at, updated_at, background_path, font_settings_json, license_provider, author, year, license_info, verse_types_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (title, song_key, verses_json, timestamp, timestamp, background_path, "{}", normalized_provider, normalized_author, normalized_year, normalized_info),
+                (title, song_key, verses_json, timestamp, timestamp, background_path, "{}", normalized_provider, normalized_author, normalized_year, normalized_info, verse_types_json),
             )
             connection.commit()
             return int(cursor.lastrowid)
         connection.execute(
             """
             UPDATE songs
-            SET title = ?, song_key = ?, verses_json = ?, updated_at = ?, background_path = ?, license_provider = ?, author = ?, year = ?, license_info = ?
+            SET title = ?, song_key = ?, verses_json = ?, updated_at = ?, background_path = ?, license_provider = ?, author = ?, year = ?, license_info = ?, verse_types_json = ?
             WHERE id = ?
             """,
-            (title, song_key, verses_json, timestamp, background_path, normalized_provider, normalized_author, normalized_year, normalized_info, song_id),
+            (title, song_key, verses_json, timestamp, background_path, normalized_provider, normalized_author, normalized_year, normalized_info, verse_types_json, song_id),
         )
         connection.commit()
         return int(song_id)
@@ -1597,6 +1660,7 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         if not verse_text:
             messagebox.showinfo("Library", "The selected verse is empty.", parent=tab_frame.winfo_toplevel())
             return
+        verse_labels = describe_song_parts(get_editor_verse_types())
         if show_live:
             show_selected_song = context.get("handle_display_live_change")
             if not callable(show_selected_song):
@@ -1619,7 +1683,7 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
         title = str(current_song.get("title") or "Untitled")
         song_key = str(current_song.get("song_key") or "").strip()
-        subtitle = f"Verse {verse_index + 1}"
+        subtitle = verse_labels[verse_index] if verse_index < len(verse_labels) else f"Verse {verse_index + 1}"
         if song_key:
             subtitle = f"{subtitle} [{song_key}]"
         queue_item = {
@@ -1631,6 +1695,7 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             "created_at": datetime.now().isoformat(timespec="seconds"),
             "text": verse_text,
             "verses": [str(verse).strip() for verse in verses if str(verse).strip()],
+            "verse_labels": verse_labels,
             "selected_verse_index": verse_index,
             "font_value": list(get_preview_font_value()),
             "background_path": str(current_song.get("background_path") or "").strip(),
@@ -1749,6 +1814,16 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
                 verses.append(verse_text)
         return verses
 
+    def get_editor_verse_types() -> list[str]:
+        """What: Read the part type of every nonempty verse row, aligned with get_editor_verses().
+
+        Why included: Saving and display labels need the type of each saved part.
+        Where used: Save, Send to Display, and Show Live.
+        Returns: Ordered part types such as Verse, Chorus, or Bridge.
+        """
+        return [normalize_part_type(row["part_var"].get()) for row in state["verse_rows"]
+                if row["text_widget"].get("1.0", tk.END).strip()]
+
     def refresh_verse_row_labels() -> None:
         """What: Renumber verse editor rows after insertion or removal.
 
@@ -1759,10 +1834,10 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         for row_index, verse_row in enumerate(state["verse_rows"], start=1):
             verse_row["number_label"].configure(text=f"{row_index}.")
 
-    def add_verse_row(verse_text: str = "") -> None:
-        """What: Create a selectable verse row with text editor and Remove control.
+    def add_verse_row(verse_text: str = "", part_type: str = "Verse") -> None:
+        """What: Create a selectable verse row with a part-type dropdown, text editor, and Remove control.
 
-        Why included: Songs store lyrics as ordered verse records rather than one text blob.
+        Why included: Songs store lyrics as ordered parts (verse, chorus, bridge, ...) rather than one text blob.
         Where used: Editor initialization, song loading, and Add Verse Break.
         Returns: None; appends row state and wires selection/removal/scroll handlers.
         """
@@ -1773,9 +1848,12 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
 
         number_label = tk.Label(verse_row_frame, text=f"{row_index + 1}.", anchor="w", justify="left")
         number_label.grid(row=0, column=0, sticky="nw", padx=(0, 8), pady=(6, 0))
+        part_var = tk.StringVar(value=normalize_part_type(part_type))
+        part_combo = ttk.Combobox(verse_row_frame, textvariable=part_var, values=SONG_PART_TYPES, state="readonly", width=10)
+        part_combo.grid(row=1, column=0, sticky="nw", padx=(0, 8), pady=(4, 0))
 
         verse_frame = tk.Frame(verse_row_frame, bd=1, relief="solid", padx=6, pady=6)
-        verse_frame.grid(row=0, column=1, sticky="ew")
+        verse_frame.grid(row=0, column=1, rowspan=2, sticky="ew")
         verse_frame.columnconfigure(0, weight=1)
         verse_text_widget = tk.Text(verse_frame, height=4, wrap="word")
         verse_text_widget.grid(row=0, column=0, sticky="ew")
@@ -1788,6 +1866,8 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         verse_row = {
             "frame": verse_row_frame,
             "number_label": number_label,
+            "part_var": part_var,
+            "part_combo": part_combo,
             "verse_frame": verse_frame,
             "text_widget": verse_text_widget,
             "remove_button": remove_button,
@@ -1838,6 +1918,7 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             refresh_verses_scroll_region()
 
         remove_button.configure(command=remove_current_row)
+        part_combo.bind("<<ComboboxSelected>>", handle_select, add="+")
         verse_row_frame.bind("<Button-1>", handle_select, add="+")
         number_label.bind("<Button-1>", handle_select, add="+")
         verse_frame.bind("<Button-1>", handle_select, add="+")
@@ -1992,9 +2073,10 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             verse_row["frame"].destroy()
         state["verse_rows"] = []
         verses = song.get("verses", []) if song else []
+        verse_types = list(song.get("verse_types") or []) if song else []
         if verses:
-            for verse in verses:
-                add_verse_row(str(verse))
+            for verse_index, verse in enumerate(verses):
+                add_verse_row(str(verse), verse_types[verse_index] if verse_index < len(verse_types) else "Verse")
             state["selected_verse_index"] = 0
         else:
             add_verse_row("")
@@ -2130,6 +2212,7 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             author_var.get(),
             year_var.get(),
             license_info_var.get(),
+            get_editor_verse_types(),
         )
         state["selected_song_id"] = song_id
         refresh_song_list()

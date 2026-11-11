@@ -84,8 +84,11 @@ CONTENTS
     Copyrighted. For Individual, a License info box appears for the
     license details. Public Domain songs show no license line on screen.
   - Background: the image or video used for this song.
-  - Verses: each verse or chorus is one slide. Use Add Verse to add
-    slides and Remove to delete one.
+  - Verses: each part of the song is one slide. Use the dropdown next to
+    each part to mark it as Verse, Chorus, Pre-Chorus, Bridge, Refrain,
+    Intro, Outro, Tag, or Ending. The Display queue then shows names such
+    as "Verse 1", "Chorus", and "Bridge". Use Add Verse to add parts and
+    Remove to delete one.
 - New Song starts an empty song, Save stores it, Clear empties the
   editor, and Delete removes the song from the library.
 - Show Live puts the selected song straight on the live screen; Send to
