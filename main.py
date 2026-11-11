@@ -2675,6 +2675,30 @@ def build_ui() -> tk.Tk:
     help_menu.add_command(label="Check for Updates...", command=lambda: check_for_updates(manual=True))
     if auto_update.check_due():
         root.after(20000, check_for_updates)
+
+    def show_license_expiry_reminder() -> None:
+        """What: Warn once per app start when the license expires within 10 days.
+
+        Why included: Churches must renew before the live screen shows NOT LICENSED.
+        Where used: Scheduled shortly after startup.
+        Returns: None; offers to open the License and Subscription window.
+        """
+        try:
+            status = licensing.get_license_status(force=True)
+        except Exception as error:
+            log_exception("main.license_reminder", error)
+            return
+        if status.state != "licensed" or status.days_left > 10:
+            return
+        until = status.valid_until[:10]
+        when = "today" if status.days_left == 0 else ("in 1 day" if status.days_left == 1 else f"in {status.days_left} days")
+        if messagebox.askyesno("License Expiring",
+                f"Your PewVista license expires {when} ({until}).\n\n"
+                "Renew before then to keep the live screen free of the red NOT LICENSED marking. "
+                "Your data is never affected.\n\nOpen License and Subscription now?", parent=root):
+            open_license_dialog()
+
+    root.after(4000, show_license_expiry_reminder)
     help_menu.add_separator()
     help_menu.add_command(label=f"Version: {get_release_version()}", state="disabled")
 
