@@ -9,6 +9,7 @@ import shutil
 import sqlite3
 import subprocess
 import tempfile
+import time
 import unittest
 from unittest.mock import MagicMock, patch
 import zipfile
@@ -455,6 +456,7 @@ class WindowsUpdateTests(unittest.TestCase):
             (self.shared_data / "obs_portable/obs-plugins/64bit/obs-browser-page.exe", True),
             (self.shared_data / "obs_portable/bin/64bit/ffmpeg.exe", True),
             (private_root / self.shared_data.name / "obs_portable/bin/64bit/obs64.exe", True),
+            (self.installed / "Resourses/grammar/java/bin/javaw.exe", True),
             (private_root / (self.shared_data.name + " Other") / "obs_portable/bin/64bit/obs64.exe", False),
             (self.shared_data / "obs_portable-other/bin/64bit/obs64.exe", False),
             (self.base / "Other OBS/bin/64bit/obs64.exe", False),
@@ -471,6 +473,19 @@ class WindowsUpdateTests(unittest.TestCase):
                     creationflags=subprocess.CREATE_NO_WINDOW,
                 )
                 processes.append((process, should_close))
+            # A program elsewhere that has loaded a DLL from the program folder (as OBS did) also locks it.
+            native_dll = Path(os.environ["SystemRoot"]) / "System32/vcruntime140.dll"
+            if native_dll.is_file():
+                locked_dll = self.installed / "_internal/locked-by-other.dll"
+                locked_dll.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(native_dll, locked_dll)
+                loader = ("Add-Type -Namespace Native -Name Kernel32 -MemberDefinition "
+                          "'[DllImport(\"kernel32.dll\", CharSet=CharSet.Unicode)] public static extern System.IntPtr LoadLibrary(string path);'; "
+                          f"[void][Native.Kernel32]::LoadLibrary('{locked_dll}'); Start-Sleep -Seconds 120")
+                dll_user = subprocess.Popen(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", loader],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
+                processes.append((dll_user, True))
+                time.sleep(5)
             prepared = self.prepare(self.archive())
             for process, _should_close in processes:
                 self.assertIsNone(process.poll(), "Disposable process exited before the update")
@@ -488,6 +503,19 @@ class WindowsUpdateTests(unittest.TestCase):
                 if process.poll() is None:
                     process.terminate()
                 process.wait(timeout=5)
+
+    def test_installer_and_updater_share_the_same_process_closing_code(self):
+        """What: Keep the file-lock closing logic identical in Setup and the updater.
+
+        Why included: Both must close programs that hold PewVista's files before copying.
+        Where used: Script consistency regression.
+        Returns: None.
+        """
+        def block(name):
+            text = self.installer.with_name(name).read_text(encoding="utf-8")
+            start = text.index("function Close-ProcessesUsingFolder")
+            return text[start:text.index("\nfunction ", text.index("function Test-FileLockError"))] if name == "install_windows_app.ps1" else text[start:text.index("\ntry {", start)]
+        self.assertEqual(block("apply_windows_update.ps1").strip(), block("install_windows_app.ps1").strip())
 
     def test_installer_rolls_back_after_copy_failure(self):
         """What: Force a target-path conflict after program replacement and verify rollback.

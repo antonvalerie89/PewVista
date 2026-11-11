@@ -384,6 +384,63 @@ function Show-SetupWizard {
     return $selection
 }
 
+function Close-ProcessesUsingFolder([string[]]$Folders, [string[]]$PathPatterns = @()) {
+    <#
+     What: Close every process that runs from, or has a program file loaded from, the given folders.
+     Why included: Any process holding a program file open (OBS, the grammar runtime, another
+     account's PewVista) makes Windows refuse to replace it, and the update then rolls back.
+     Where used: Before program files are copied, and again when a copy finds a locked file.
+     Returns: Names of the processes that were closed; throws when one cannot be closed.
+    #>
+    $roots = @($Folders | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\') + '\' })
+    $closed = New-Object System.Collections.Generic.List[string]
+    foreach ($process in @(Get-Process -ErrorAction SilentlyContinue)) {
+        if ($process.Id -in @(0, 4, $PID)) { continue }
+        $uses = $false
+        $processPath = $null
+        try { $processPath = $process.Path } catch { }
+        if ($processPath) {
+            foreach ($root in $roots) { if ($processPath.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { $uses = $true } }
+            foreach ($pattern in $PathPatterns) { if ($processPath -match $pattern) { $uses = $true } }
+        }
+        if (-not $uses) {
+            try {
+                foreach ($module in $process.Modules) {
+                    foreach ($root in $roots) { if ($module.FileName -and $module.FileName.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { $uses = $true } }
+                    if ($uses) { break }
+                }
+            }
+            catch { }
+        }
+        if (-not $uses -or $process.HasExited) { continue }
+        Write-Host "Closing $($process.Name) (process $($process.Id)), which is using program files..."
+        try {
+            if ($process.CloseMainWindow()) { [void]$process.WaitForExit(15000) }
+            if (-not $process.HasExited) {
+                & taskkill.exe /PID $process.Id /T /F | Out-Null
+                [void]$process.WaitForExit(5000)
+            }
+        }
+        catch { }
+        if (-not $process.HasExited) { throw "Unable to close $($process.Name) (process $($process.Id)), which is using program files. No program files have been changed." }
+        $closed.Add($process.Name)
+    }
+    return $closed
+}
+function Test-FileLockError($ErrorRecord) {
+    <#
+     What: Recognize Windows sharing and lock violations.
+     Why included: Only locked files are worth retrying after closing the process holding them.
+     Where used: The program-file copy loop.
+     Returns: True for "being used by another process" errors.
+    #>
+    $exception = $ErrorRecord.Exception
+    while ($exception) {
+        if ($exception.HResult -in @(-2147024864, -2147024863)) { return $true }
+        $exception = $exception.InnerException
+    }
+    return $false
+}
 function New-InstallProgressWindow([string]$ChurchName) {
     <#
      What: Open a small window that shows installation progress.
@@ -605,6 +662,14 @@ public static class SetupConsoleWindow {
 
     $files = @(Get-ChildItem -LiteralPath $SourceDirectory -File -Recurse -Force)
     if ($showWizard) { $progressWindow = New-InstallProgressWindow $ChurchName }
+    # Reinstalling over an existing copy: close anything holding its program files first.
+    $privateObsPattern = '\\AppData\\Local\\PewVista\\' + [regex]::Escape((Split-Path -Leaf $DataDirectory)) + '\\obs_portable\\'
+    $lockFolders = @($DestinationDirectory, (Join-Path $DataDirectory "obs_portable"))
+    if (Test-Path -LiteralPath $DestinationDirectory -PathType Container) {
+        if ($showWizard) { $progressWindow.Label.Text = "Closing programs that are using PewVista's files..."; [System.Windows.Forms.Application]::DoEvents() }
+        $closedPrograms = Close-ProcessesUsingFolder -Folders $lockFolders -PathPatterns @($privateObsPattern)
+        if ($closedPrograms.Count -gt 0) { Write-Host ("Closed: " + (($closedPrograms | Select-Object -Unique) -join ", ")) }
+    }
     $count = 0
     foreach ($file in $files) {
         $relative = $file.FullName.Substring($SourceDirectory.Length + 1)
@@ -636,7 +701,20 @@ public static class SetupConsoleWindow {
         [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($target)) | Out-Null
         if ($isReinstall -and $relative -match '^(Bibles|Backgrounds)\\' -and
             (Test-Path -LiteralPath $target -PathType Leaf)) { continue }
-        [System.IO.File]::Copy($file.FullName, $target, $isReinstall)
+        $copyAttempt = 0
+        while ($true) {
+            try {
+                [System.IO.File]::Copy($file.FullName, $target, $isReinstall)
+                break
+            }
+            catch {
+                $copyAttempt++
+                if ($copyAttempt -ge 4 -or -not (Test-FileLockError $_)) { throw }
+                Write-Host "$relative is in use; closing the program holding it and retrying..."
+                [void](Close-ProcessesUsingFolder -Folders $lockFolders -PathPatterns @($privateObsPattern))
+                Start-Sleep -Seconds 2
+            }
+        }
         $count++
         $percent = [int](100.0 * $count / [Math]::Max(1.0, [double]$files.Count))
         if ($showWizard) {

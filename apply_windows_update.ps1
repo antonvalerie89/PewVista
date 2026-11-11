@@ -60,6 +60,63 @@ function Set-UpdateStatus([string]$Message, [int]$Percent = -1, [bool]$Succeeded
     }
     catch { }
 }
+function Close-ProcessesUsingFolder([string[]]$Folders, [string[]]$PathPatterns = @()) {
+    <#
+     What: Close every process that runs from, or has a program file loaded from, the given folders.
+     Why included: Any process holding a program file open (OBS, the grammar runtime, another
+     account's PewVista) makes Windows refuse to replace it, and the update then rolls back.
+     Where used: Before program files are copied, and again when a copy finds a locked file.
+     Returns: Names of the processes that were closed; throws when one cannot be closed.
+    #>
+    $roots = @($Folders | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\') + '\' })
+    $closed = New-Object System.Collections.Generic.List[string]
+    foreach ($process in @(Get-Process -ErrorAction SilentlyContinue)) {
+        if ($process.Id -in @(0, 4, $PID)) { continue }
+        $uses = $false
+        $processPath = $null
+        try { $processPath = $process.Path } catch { }
+        if ($processPath) {
+            foreach ($root in $roots) { if ($processPath.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { $uses = $true } }
+            foreach ($pattern in $PathPatterns) { if ($processPath -match $pattern) { $uses = $true } }
+        }
+        if (-not $uses) {
+            try {
+                foreach ($module in $process.Modules) {
+                    foreach ($root in $roots) { if ($module.FileName -and $module.FileName.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { $uses = $true } }
+                    if ($uses) { break }
+                }
+            }
+            catch { }
+        }
+        if (-not $uses -or $process.HasExited) { continue }
+        Write-Host "Closing $($process.Name) (process $($process.Id)), which is using program files..."
+        try {
+            if ($process.CloseMainWindow()) { [void]$process.WaitForExit(15000) }
+            if (-not $process.HasExited) {
+                & taskkill.exe /PID $process.Id /T /F | Out-Null
+                [void]$process.WaitForExit(5000)
+            }
+        }
+        catch { }
+        if (-not $process.HasExited) { throw "Unable to close $($process.Name) (process $($process.Id)), which is using program files. No program files have been changed." }
+        $closed.Add($process.Name)
+    }
+    return $closed
+}
+function Test-FileLockError($ErrorRecord) {
+    <#
+     What: Recognize Windows sharing and lock violations.
+     Why included: Only locked files are worth retrying after closing the process holding them.
+     Where used: The program-file copy loop.
+     Returns: True for "being used by another process" errors.
+    #>
+    $exception = $ErrorRecord.Exception
+    while ($exception) {
+        if ($exception.HResult -in @(-2147024864, -2147024863)) { return $true }
+        $exception = $exception.InnerException
+    }
+    return $false
+}
 try {
     $PayloadDirectory = [System.IO.Path]::GetFullPath($PayloadDirectory).TrimEnd('\')
     $InstallDirectory = [System.IO.Path]::GetFullPath($InstallDirectory).TrimEnd('\')
@@ -261,8 +318,6 @@ try {
             throw "The app did not close. No program files have been changed."
         }
     }
-    $runningApp = @(Get-Process -Name "PewVista", "The Light Ministries" -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $executable })
-    if ($runningApp.Count -gt 0) { throw "Close all instances of this application before installing the update." }
     $data = Join-Path $InstallDirectory "Data"
     $installationConfig = Join-Path $InstallDirectory "installation.json"
     if (Test-Path -LiteralPath $installationConfig -PathType Leaf) {
@@ -274,33 +329,12 @@ try {
         if (-not $NoAdmin -and -not $configuredData.StartsWith($programDataRoot + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "Installed shared-data path is outside ProgramData; no update was applied." }
         $data = $configuredData
     }
-    Set-UpdateStatus "Closing this application's secondary-screen player..."
+    Set-UpdateStatus "Closing programs that are using PewVista's files..."
     $obsRoots = @((Join-Path $InstallDirectory "Resourses\obs_portable"), (Join-Path $data "obs_portable"))
     # Each Windows account runs its own copy under %LOCALAPPDATA%\PewVista\<data folder name>\obs_portable.
     $privateObsPattern = '\\AppData\\Local\\PewVista\\' + [regex]::Escape((Split-Path -Leaf $data)) + '\\obs_portable\\'
-    $obsProcesses = @(Get-CimInstance Win32_Process | Where-Object {
-        $processPath = $_.ExecutablePath
-        $belongsToInstallation = $processPath -and (($processPath -match $privateObsPattern) -or @($obsRoots | Where-Object {
-            $processPath.StartsWith($_.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)
-        }).Count -gt 0)
-        $belongsToInstallation
-    })
-    foreach ($processInfo in $obsProcesses) {
-        $process = Get-Process -Id $processInfo.ProcessId -ErrorAction SilentlyContinue
-        if (-not $process -or $process.HasExited) { continue }
-        Write-Host "Closing this installation's secondary-screen player ($($process.Name))..."
-        try {
-            $closeRequested = $process.CloseMainWindow()
-            if ($closeRequested) { [void]$process.WaitForExit(15000) }
-            if (-not $process.HasExited) {
-                & taskkill.exe /PID $process.Id /T /F | Out-Null
-                if (-not $process.WaitForExit(5000)) { throw "The secondary-screen player did not exit." }
-            }
-        }
-        catch {
-            if (-not $process.HasExited) { throw "Unable to close this installation's secondary-screen player. No program files have been changed. $($_.Exception.Message)" }
-        }
-    }
+    $closedPrograms = Close-ProcessesUsingFolder -Folders (@($InstallDirectory) + $obsRoots) -PathPatterns @($privateObsPattern)
+    if ($closedPrograms.Count -gt 0) { Write-Host ("Closed: " + (($closedPrograms | Select-Object -Unique) -join ", ")) }
     $backupName = (Get-Date -Format "yyyyMMdd-HHmmss-fff") + "-" + [guid]::NewGuid().ToString("N")
     $backupDirectory = Join-Path (Join-Path $InstallDirectory ".update-backups") $backupName
     [System.IO.Directory]::CreateDirectory($backupDirectory) | Out-Null
@@ -342,7 +376,20 @@ try {
         }
         $changedFiles.Add([pscustomobject]@{ Target = $target; Backup = $backup; Existed = $existed })
         [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($target)) | Out-Null
-        [System.IO.File]::Copy($file.FullName, $target, $true)
+        $copyAttempt = 0
+        while ($true) {
+            try {
+                [System.IO.File]::Copy($file.FullName, $target, $true)
+                break
+            }
+            catch {
+                $copyAttempt++
+                if ($copyAttempt -ge 4 -or -not (Test-FileLockError $_)) { throw }
+                Write-Host "$relative is in use; closing the program holding it and retrying..."
+                [void](Close-ProcessesUsingFolder -Folders (@($InstallDirectory) + $obsRoots) -PathPatterns @($privateObsPattern))
+                Start-Sleep -Seconds 2
+            }
+        }
         $completed++
         $percent = [int][Math]::Floor(100.0 * $completed / [Math]::Max(1.0, [double]$files.Count))
         if ($completed -eq 1 -or $completed % 10 -eq 0 -or $completed -eq $files.Count) { Set-UpdateStatus "Installing program files ($completed of $($files.Count))..." $percent }
