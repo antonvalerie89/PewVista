@@ -1513,6 +1513,10 @@ def require_terms_acceptance(parent: tk.Misc) -> bool:
     text.pack(side="left", fill="both", expand=True)
     dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
     parent.wait_window(dialog)
+    try:
+        parent.winfo_toplevel().grab_release()
+    except tk.TclError:
+        pass
     return result["accepted"]
 
 
@@ -2258,16 +2262,17 @@ def build_ui() -> tk.Tk:
             lambda report: import_service_days_archive(Path(archive_path), selected_dates, mode, get_app_data_path(), report),
             "Selected service days imported with their referenced songs/backgrounds. Restart the app to reload them.")
 
-    def open_update_progress_window(initial_subtitle: str, initial_status: str) -> dict[str, object]:
+    def open_update_progress_window(initial_subtitle: str, initial_status: str, on_cancel=None) -> dict[str, object]:
         """What: Open or reuse a visible update progress popup matching the external updater window.
 
         Why included: Updating the Help menu label while the menu is closed gave no visible
-        feedback during update download and preparation.
+        feedback during update download and preparation, and users need a Cancel button.
         Where used: check_for_updates() download stage and install_windows_update() preparation stage.
         Returns: Dictionary with the popup window and helper functions to update or close it.
         """
         existing = update_state.get("progress_window")
         if isinstance(existing, dict) and isinstance(existing.get("window"), tk.Toplevel) and existing["window"].winfo_exists():
+            existing["set_cancel"](on_cancel)
             existing["set_stage"](initial_subtitle, initial_status, 0)
             return existing
         win = tk.Toplevel(root)
@@ -2293,11 +2298,11 @@ def build_ui() -> tk.Tk:
         tk.Label(header, textvariable=subtitle_var, bg="#1d414e", fg="#d2e6e5", font=("Segoe UI", 10)).place(x=26, y=52)
 
         body = tk.Frame(win, bg="#f5f7fa")
-        body.pack(fill="both", expand=True, padx=26, pady=18)
+        body.pack(fill="both", expand=True, padx=26, pady=16)
         status_var = tk.StringVar(master=win, value=initial_status)
-        tk.Label(body, textvariable=status_var, bg="#f5f7fa", fg="#1f2328", font=("Segoe UI", 10), anchor="w", justify="left", wraplength=565).pack(fill="x", pady=(4, 12))
+        tk.Label(body, textvariable=status_var, bg="#f5f7fa", fg="#1f2328", font=("Segoe UI", 10), anchor="w", justify="left", wraplength=565).pack(fill="x", pady=(2, 10))
         progress_bar = ttk.Progressbar(body, mode="determinate", maximum=100, value=0)
-        progress_bar.pack(fill="x", pady=(0, 12))
+        progress_bar.pack(fill="x", pady=(0, 10))
         tk.Label(
             body,
             text="Your existing data and settings are preserved and backed up before program files are updated.",
@@ -2308,7 +2313,18 @@ def build_ui() -> tk.Tk:
             justify="left",
             wraplength=565,
         ).pack(fill="x")
-        win.protocol("WM_DELETE_WINDOW", lambda: None)
+        cancel_holder = {"callback": on_cancel}
+
+        def trigger_cancel() -> None:
+            cb = cancel_holder.get("callback")
+            if callable(cb):
+                cb()
+
+        footer = tk.Frame(body, bg="#f5f7fa")
+        footer.pack(fill="x", side="bottom", pady=(8, 0))
+        cancel_btn = tk.Button(footer, text="Cancel", width=12, command=trigger_cancel)
+        cancel_btn.pack(side="right")
+        win.protocol("WM_DELETE_WINDOW", trigger_cancel)
         win.lift()
         win.focus_force()
 
@@ -2319,6 +2335,9 @@ def build_ui() -> tk.Tk:
             status_var.set(status_text)
             progress_bar.configure(value=max(0, min(100, int(percent))))
 
+        def set_cancel(callback) -> None:
+            cancel_holder["callback"] = callback
+
         def close_window() -> None:
             update_state["progress_window"] = None
             if win.winfo_exists():
@@ -2327,11 +2346,11 @@ def build_ui() -> tk.Tk:
                 except tk.TclError:
                     pass
 
-        handle = {"window": win, "set_stage": set_stage, "close": close_window}
+        handle = {"window": win, "set_stage": set_stage, "set_cancel": set_cancel, "close": close_window}
         update_state["progress_window"] = handle
         return handle
 
-    def install_windows_update(selected: str | Path | None = None, confirmed: bool = False) -> None:
+    def install_windows_update(selected: str | Path | None = None, confirmed: bool = False, terms_accepted: bool = False) -> None:
         """What: Prepare a desktop update ZIP and hand installation to an external process.
 
         Why included: Other PCs need an in-app update workflow that preserves their own databases.
@@ -2349,7 +2368,7 @@ def build_ui() -> tk.Tk:
             return
         if not confirmed and not messagebox.askyesno("Install Update", "Install this ZIP from a trusted source?\n\nThe app and its bundled OBS will close after preparation. Your databases and settings will be preserved, and existing data/program files will be backed up. The app will restart after installation.", parent=root):
             return
-        if not require_terms_acceptance(root):
+        if not terms_accepted and not require_terms_acceptance(root):
             existing_popup = update_state.get("progress_window")
             if isinstance(existing_popup, dict) and callable(existing_popup.get("close")):
                 existing_popup["close"]()
@@ -2357,8 +2376,21 @@ def build_ui() -> tk.Tk:
             return
         install_directory = get_app_base_path()
         update_state["busy"] = True
+        cancel_event = threading.Event()
+        update_state["cancel_event"] = cancel_event
         help_menu.entryconfigure(update_entry_index, state="disabled", label="Install Update...")
-        progress_popup = open_update_progress_window("Preparing update", "Verifying and extracting update files... 0%")
+
+        def cancel_preparation() -> None:
+            cancel_event.set()
+            update_state["busy"] = False
+            progress_popup["close"]()
+            help_menu.entryconfigure(update_entry_index, state="normal", label="Install Update...")
+
+        progress_popup = open_update_progress_window(
+            "Preparing update",
+            "Verifying and extracting update files... 0%",
+            on_cancel=cancel_preparation,
+        )
 
         def prepare_worker(report_progress):
             """What: Validate and extract the selected archive without touching installed files.
@@ -2367,8 +2399,13 @@ def build_ui() -> tk.Tk:
             Where used: WindowsUpdatePrepare background task.
             Returns: Prepared payload and helper paths.
             """
+            def checked_progress(completed: int, total: int) -> None:
+                if cancel_event.is_set():
+                    raise RuntimeError("__UPDATE_CANCELLED__")
+                report_progress(completed, total)
+
             return prepare_update_archive(Path(selected), install_directory,
-                install_directory / "apply_windows_update.ps1", progress=report_progress)
+                install_directory / "apply_windows_update.ps1", progress=checked_progress)
 
         def show_progress(completed: int, total: int) -> None:
             """What: Display update extraction progress in the update popup window.
@@ -2377,6 +2414,8 @@ def build_ui() -> tk.Tk:
             Where used: Update worker progress callback.
             Returns: None.
             """
+            if cancel_event.is_set():
+                return
             percent = completed * 100 // max(1, total)
             progress_popup["set_stage"]("Preparing update", f"Verifying and extracting update files... {percent}%", percent)
 
@@ -2390,6 +2429,8 @@ def build_ui() -> tk.Tk:
             update_state["busy"] = False
             progress_popup["close"]()
             help_menu.entryconfigure(update_entry_index, state="normal", label="Install Update...")
+            if cancel_event.is_set() or str(error) == "__UPDATE_CANCELLED__":
+                return
             messagebox.showerror("Install Update", str(error), parent=root)
 
         def preparation_ready(prepared) -> None:
@@ -2399,6 +2440,9 @@ def build_ui() -> tk.Tk:
             Where used: Successful WindowsUpdatePrepare completion callback.
             Returns: None; leaves the app open if process creation fails.
             """
+            if cancel_event.is_set():
+                discard_prepared_update(prepared)
+                return
             progress_popup["set_stage"]("Starting installer", "Preparation complete. Launching update installer...", 100)
             try:
                 launch_prepared_update(prepared, install_directory, os.getpid())
@@ -2409,7 +2453,8 @@ def build_ui() -> tk.Tk:
             progress_popup["close"]()
             handle_app_close()
 
-        start_background_task("WindowsUpdatePrepare", prepare_worker,
+        task_id = f"WindowsUpdatePrepare-{time.monotonic_ns()}"
+        start_background_task(task_id, prepare_worker,
             on_success=preparation_ready, on_error=preparation_failed, on_progress=show_progress)
 
     def check_for_updates(manual: bool = False) -> None:
@@ -2443,12 +2488,30 @@ def build_ui() -> tk.Tk:
                         "your data and settings are kept. Choose No to be reminded later.")
             if not messagebox.askyesno("Update Available", question, parent=root):
                 return
+            if not require_terms_acceptance(root):
+                messagebox.showinfo("Update", "The update was cancelled because the Terms and Conditions were not accepted.", parent=root)
+                return
             update_state["busy"] = True
+            cancel_event = threading.Event()
+            update_state["cancel_event"] = cancel_event
             help_menu.entryconfigure(update_entry_index, state="disabled", label="Install Update...")
-            progress_popup = open_update_progress_window("Downloading update", "Downloading update package... 0%")
+
+            def cancel_download() -> None:
+                cancel_event.set()
+                update_state["busy"] = False
+                progress_popup["close"]()
+                help_menu.entryconfigure(update_entry_index, state="normal", label="Install Update...")
+
+            progress_popup = open_update_progress_window(
+                "Downloading update",
+                "Downloading update package... 0%",
+                on_cancel=cancel_download,
+            )
             target = Path(tempfile.gettempdir()) / "PewVista-update" / auto_update.UPDATE_FILE_NAME
 
             def download_progress(received: int, total: int) -> None:
+                if cancel_event.is_set():
+                    raise auto_update.UpdateCheckError("__UPDATE_CANCELLED__")
                 if total:
                     percent = received * 100 // max(1, total)
                     rec_mb = received / (1024 * 1024)
@@ -2459,17 +2522,23 @@ def build_ui() -> tk.Tk:
                 update_state["busy"] = False
                 progress_popup["close"]()
                 help_menu.entryconfigure(update_entry_index, state="normal", label="Install Update...")
+                if cancel_event.is_set() or "__UPDATE_CANCELLED__" in str(error):
+                    return
                 messagebox.showerror("Update", str(error), parent=root)
 
             def download_finished(path) -> None:
+                if cancel_event.is_set():
+                    return
                 update_state["busy"] = False
                 help_menu.entryconfigure(update_entry_index, state="normal", label="Install Update...")
-                install_windows_update(path, confirmed=True)
+                install_windows_update(path, confirmed=True, terms_accepted=True)
 
-            start_background_task("AutoUpdateDownload", lambda report: auto_update.download_update(feed, target, progress=report),
+            download_task_id = f"AutoUpdateDownload-{time.monotonic_ns()}"
+            start_background_task(download_task_id, lambda report: auto_update.download_update(feed, target, progress=report),
                 on_success=download_finished, on_error=download_failed, on_progress=download_progress)
 
-        start_background_task("AutoUpdateCheck", lambda: auto_update.check_for_update(get_release_version()),
+        check_task_id = f"AutoUpdateCheck-{time.monotonic_ns()}"
+        start_background_task(check_task_id, lambda: auto_update.check_for_update(get_release_version()),
             on_success=check_finished, on_error=check_failed)
 
     container = tk.Frame(root, bg=THEMES["Light"]["window_bg"])
