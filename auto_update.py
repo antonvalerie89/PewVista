@@ -24,7 +24,7 @@ from pathlib import Path
 from app_paths import get_app_data_path
 
 # Public folder that holds latest.json and the update ZIP; blank disables automatic checks.
-UPDATE_FEED_URL = ""
+UPDATE_FEED_URL = "https://github.com/antonvalerie89/PewVista/releases/latest/download"
 FEED_FILE_NAME = "latest.json"
 UPDATE_FILE_NAME = "PewVista-Update-Windows-x64.zip"
 CHECK_INTERVAL = timedelta(hours=20)

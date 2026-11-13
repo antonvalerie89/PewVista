@@ -41,6 +41,12 @@ try {
     Write-Host "[SETUP] Building and verifying the single-file installer..."
     powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $scriptDirectory "build_windows_setup.ps1") -InstallationArchive (Join-Path $temporaryDirectory "PewVista-Install-Windows-x64.zip") -SetupExecutable $setupExecutable
     if ($LASTEXITCODE -ne 0) { throw "Setup.exe build failed. No finished release has been published." }
+    $pythonExe = Join-Path $scriptDirectory ".venv\Scripts\python.exe"
+    $autoUpdateScript = Join-Path $scriptDirectory "auto_update.py"
+    if ((Test-Path -LiteralPath $pythonExe -PathType Leaf) -and (Test-Path -LiteralPath $autoUpdateScript -PathType Leaf)) {
+        & $pythonExe $autoUpdateScript feed $temporaryDirectory "https://github.com/antonvalerie89/PewVista/releases/latest/download" | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "latest.json feed creation failed. No finished release has been published." }
+    }
     function Move-DirectoryWithRetry([string]$Source, [string]$Destination) {
         <#
          What: Rename a folder, waiting while another program briefly holds files open in it.
@@ -62,7 +68,7 @@ try {
     $previousDirectory = Join-Path $OutputRoot "previous"
     if ([System.IO.Directory]::Exists($releaseDirectory)) {
         if ([System.IO.Directory]::Exists($previousDirectory)) {
-            $expectedNames = @("PewVista-Install-Windows-x64.zip", "PewVista-Update-Windows-x64.zip", "PewVista Setup.exe", "The Light Ministries-Install-Windows-x64.zip", "The Light Ministries-Update-Windows-x64.zip", "The Light Ministries Setup.exe")
+            $expectedNames = @("PewVista-Install-Windows-x64.zip", "PewVista-Update-Windows-x64.zip", "PewVista Setup.exe", "latest.json", "The Light Ministries-Install-Windows-x64.zip", "The Light Ministries-Update-Windows-x64.zip", "The Light Ministries Setup.exe")
             if (@(Get-ChildItem -LiteralPath $previousDirectory -Force | Where-Object { $_.PSIsContainer -or $_.Name -notin $expectedNames }).Count -gt 0) {
                 throw "The previous release folder contains other files. It was preserved; move those files before publishing."
             }
