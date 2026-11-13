@@ -768,9 +768,9 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             for button_index, button in enumerate(editor_buttons):
                 button.grid(row=0, column=button_index, sticky="w", padx=(0, 4))
             tab_widgets.extend([column_frame, title, form, title_label, title_entry, key_label, key_entry, license_label, license_picker, author_label, author_entry, year_label, year_entry, license_info_label, license_info_entry, background_label, background_value_label, background_button, verses_label, verses_area_frame, verses_host, verses_canvas, verses_scrollbar, verses_container, *editor_buttons])
-            tab_labels.extend([title, title_label, key_label, license_label, author_label, year_label, license_info_label, background_label, verses_label])
+            tab_labels.extend([title, title_label, key_label, license_label, author_label, year_label, license_info_label, background_label, background_value_label, verses_label])
             tab_inputs.extend([title_entry, key_entry, license_picker, author_entry, year_entry, license_info_entry, background_button, *editor_buttons])
-            apply_layout_style([column_frame, form, title_entry, key_entry, license_picker, author_entry, year_entry, license_info_entry, background_value_label, background_button, verses_area_frame, verses_host, verses_canvas, verses_container, *editor_buttons], label_widgets=[title, title_label, key_label, license_label, author_label, background_label, verses_label], input_widgets=[title_entry, key_entry, license_picker, author_entry, background_button, *editor_buttons])
+            apply_layout_style([column_frame, form, title_entry, key_entry, license_picker, author_entry, year_entry, license_info_entry, background_value_label, background_button, verses_area_frame, verses_host, verses_canvas, verses_container, *editor_buttons], label_widgets=[title, title_label, key_label, license_label, author_label, year_label, license_info_label, background_label, background_value_label, verses_label], input_widgets=[title_entry, key_entry, license_picker, author_entry, year_entry, license_info_entry, background_button, *editor_buttons])
         else:
             column_frame.rowconfigure(2, weight=1)
             title = tk.Label(column_frame, text="Preview / Details", justify="center", anchor="center")
@@ -1934,10 +1934,14 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         verse_text_widget.bind("<FocusIn>", handle_select, add="+")
         verse_text_widget.bind("<KeyRelease>", handle_select, add="+")
         if not defer_refresh:
+            row_widgets = [verse_row_frame, verse_frame, verse_text_widget, remove_button, number_label, part_combo]
+            tab_widgets.extend(row_widgets)
+            tab_labels.append(number_label)
+            tab_inputs.extend([verse_text_widget, remove_button, part_combo])
             apply_layout_style(
-                [verse_row_frame, verse_frame, verse_text_widget, remove_button],
+                row_widgets,
                 label_widgets=[number_label],
-                input_widgets=[verse_text_widget, remove_button],
+                input_widgets=[verse_text_widget, remove_button, part_combo],
             )
         bind_outer_verse_scroll(verse_row_frame)
         bind_outer_verse_scroll(number_label)
@@ -2103,9 +2107,12 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             batch_labels: list[tk.Widget] = []
             batch_inputs: list[tk.Widget] = []
             for row in newly_created:
-                batch_widgets.extend([row["frame"], row["verse_frame"], row["text_widget"], row["remove_button"]])
+                batch_widgets.extend([row["frame"], row["verse_frame"], row["text_widget"], row["remove_button"], row["number_label"], row["part_combo"]])
                 batch_labels.append(row["number_label"])
-                batch_inputs.extend([row["text_widget"], row["remove_button"]])
+                batch_inputs.extend([row["text_widget"], row["remove_button"], row["part_combo"]])
+            tab_widgets.extend(batch_widgets)
+            tab_labels.extend(batch_labels)
+            tab_inputs.extend(batch_inputs)
             apply_layout_style(batch_widgets, label_widgets=batch_labels, input_widgets=batch_inputs)
         state["selected_verse_index"] = None if song is None else 0
         set_send_to_display_button_for_song(song)

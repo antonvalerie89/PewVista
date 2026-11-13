@@ -655,28 +655,18 @@ class MirrorDisplayController:
         self.preview_refresh_after_id = None
 
     def schedule_preview_refresh(self) -> None:
-        """What: Coalesce preview rendering into one after-idle callback.
+        """What: Render the local preview immediately on state changes.
 
-        Why included: Multiple state changes in one UI event should cause one redraw.
+        Why included: Waiting for after_idle allowed background OBS pushes and other UI tasks
+        to delay the local Mirror preview until after the secondary screen had already updated.
         Where used: set_live_payload() after preview state changes.
-        Returns: None; callback renders current state then synchronizes animations.
+        Returns: None; renders current state and synchronizes animations immediately.
         """
         self.cancel_preview_refresh()
         if not isinstance(self.preview_label, tk.Label):
             return
-
-        def refresh_preview_now() -> None:
-            """What: Clear the pending ID, render current state, and sync animations.
-
-            Why included: The deferred callback must use the newest controller state.
-            Where used: after_idle callback scheduled by schedule_preview_refresh().
-            Returns: None; updates the local preview and animation timers.
-            """
-            self.preview_refresh_after_id = None
-            self.render_preview()
-            self.sync_preview_animations()
-
-        self.preview_refresh_after_id = self.preview_label.after_idle(refresh_preview_now)
+        self.render_preview()
+        self.sync_preview_animations()
 
     def clear_preview_gif_cache(self) -> None:
         """What: Stop GIF animation and clear cached frames, timings, and index.
@@ -1128,40 +1118,6 @@ class MirrorDisplayController:
         if scroll_active:
             return self.render_cached_scroll_preview(rendered_image, preview_text, font_value, corner_text,
                                                      render_width, render_height, preview_scroll_offset, bg_path)
-        fitted_background = ImageOps.fit(source_image.convert("RGB"), (render_width, render_height),
-                                        method=Image.Resampling.LANCZOS)
-        if bg_path:
-            setattr(fitted_background, "_background_path", bg_path)
-        fields = build_sized_text_fields(source_value, preview_text, font_value, welcome_sections)
-        if fields and not scroll_active:
-            overlay = render_text_fields_overlay(render_width, render_height, fields, base_image=fitted_background, background_path=bg_path)
-            if overlay is not None:
-                overlay = overlay.resize((preview_width, preview_height), Image.Resampling.LANCZOS)
-                return Image.alpha_composite(rendered_image.convert("RGBA"), overlay).convert("RGB"), 0
-        source_key = str(source_value).casefold()
-        source_line_spacing_ratio = 0.28
-        source_size_boost = SECONDARY_LAYOUT_SIZE_BOOST
-        if source_key == "preparation":
-            source_line_spacing_ratio = 0.14
-            source_size_boost = 1.0
-        elif source_key == "welcome":
-            source_size_boost = WELCOME_LAYOUT_SIZE_BOOST
-        full_layout = fit_overlay_layout(
-            preview_text,
-            scale_overlay_font_value(normalize_font_value(font_value), render_width, render_height),
-            render_width,
-            render_height,
-            scroll_enabled=False,
-            base_image=fitted_background,
-            stroke_width=PREVIEW_STROKE_WIDTH,
-            padding=18,
-            max_text_height_ratio=PREVIEW_MAX_TEXT_HEIGHT_RATIO,
-            max_text_multiplier=PREVIEW_MAX_TEXT_MULTIPLIER,
-            min_text_size=12,
-            line_spacing_ratio=source_line_spacing_ratio,
-            size_boost=source_size_boost,
-            corner_font_size=get_display_key_size(render_width, render_height),
-        )
         overlay_cache_key = self.get_preview_overlay_cache_key(
             preview_text,
             font_value,
@@ -1178,6 +1134,28 @@ class MirrorDisplayController:
         cached_overlay_image = self.preview_overlay_cache_image if self.preview_overlay_cache_key == overlay_cache_key else None
         if cached_overlay_image is not None:
             return Image.alpha_composite(rendered_image.convert("RGBA"), cached_overlay_image.copy()).convert("RGB"), next_scroll_cycle_height
+        # rendered_image is already fitted to the exact aspect ratio of (render_width, render_height);
+        # choose_text_colors samples percentage crops, so passing rendered_image avoids a slow
+        # full-resolution 1920x1080 LANCZOS resize on every Mirror preview update.
+        fitted_background = rendered_image
+        if bg_path:
+            setattr(fitted_background, "_background_path", bg_path)
+        fields = build_sized_text_fields(source_value, preview_text, font_value, welcome_sections)
+        if fields and not scroll_active:
+            overlay = render_text_fields_overlay(render_width, render_height, fields, base_image=fitted_background, background_path=bg_path)
+            if overlay is not None:
+                overlay = overlay.resize((preview_width, preview_height), Image.Resampling.LANCZOS).convert("RGBA")
+                self.preview_overlay_cache_key = overlay_cache_key
+                self.preview_overlay_cache_image = overlay.copy()
+                return Image.alpha_composite(rendered_image.convert("RGBA"), overlay).convert("RGB"), 0
+        source_key = str(source_value).casefold()
+        source_line_spacing_ratio = 0.28
+        source_size_boost = SECONDARY_LAYOUT_SIZE_BOOST
+        if source_key == "preparation":
+            source_line_spacing_ratio = 0.14
+            source_size_boost = 1.0
+        elif source_key == "welcome":
+            source_size_boost = WELCOME_LAYOUT_SIZE_BOOST
         sections = welcome_sections if isinstance(welcome_sections, dict) else None
         if source_key == "welcome" and sections and sections.get("combine_enabled"):
             section_layout = fit_sectioned_overlay_layout(
@@ -1203,6 +1181,22 @@ class MirrorDisplayController:
                 stroke_width=PREVIEW_STROKE_WIDTH,
             )
         else:
+            full_layout = fit_overlay_layout(
+                preview_text,
+                scale_overlay_font_value(normalize_font_value(font_value), render_width, render_height),
+                render_width,
+                render_height,
+                scroll_enabled=False,
+                base_image=fitted_background,
+                stroke_width=PREVIEW_STROKE_WIDTH,
+                padding=18,
+                max_text_height_ratio=PREVIEW_MAX_TEXT_HEIGHT_RATIO,
+                max_text_multiplier=PREVIEW_MAX_TEXT_MULTIPLIER,
+                min_text_size=12,
+                line_spacing_ratio=source_line_spacing_ratio,
+                size_boost=source_size_boost,
+                corner_font_size=get_display_key_size(render_width, render_height),
+            )
             full_overlay_image = render_overlay_image(
                 render_width,
                 render_height,

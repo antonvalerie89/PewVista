@@ -492,6 +492,8 @@ def build_preparation_tab(tab_frame: tk.Frame, context: dict[str, object]) -> No
                     command=lambda selected_index=block_index: select_page_block(selected_index),
                 )
                 card_button.grid(row=block_index, column=0, sticky="ew", pady=(0, 6))
+                tab_widgets.append(card_button)
+                tab_inputs.append(card_button)
                 apply_layout_style([card_button], input_widgets=[card_button])
                 if isinstance(block_cards_canvas, tk.Canvas):
                     bind_mousewheel_scroll(card_button, block_cards_canvas)
@@ -1301,11 +1303,11 @@ def build_preparation_tab(tab_frame: tk.Frame, context: dict[str, object]) -> No
             send_button.grid(row=0, column=0, sticky="w")
 
             tab_widgets.extend([column_frame, title, background_button, background_display, header_field_row, header_label, header_size_button, header_alignment, header_entry, text_field_row, text_label, text_size_button, text_alignment, text_block, send_button])
-            tab_labels.extend([title, header_label, text_label])
+            tab_labels.extend([title, header_label, text_label, background_display])
             header_alignment_menu = header_alignment["menu"]
             text_alignment_menu = text_alignment["menu"]
             tab_inputs.extend([header_size_button, text_size_button, header_alignment, text_alignment, header_alignment_menu, text_alignment_menu, background_button, header_entry, text_block, send_button])
-            apply_layout_style([column_frame, header_field_row, text_field_row, background_button, background_display, header_entry, text_block, send_button], label_widgets=[title, header_label, text_label], input_widgets=[header_size_button, text_size_button, header_alignment, text_alignment, header_alignment_menu, text_alignment_menu, background_button, header_entry, text_block, send_button])
+            apply_layout_style([column_frame, header_field_row, text_field_row, background_button, background_display, header_entry, text_block, send_button], label_widgets=[title, header_label, text_label, background_display], input_widgets=[header_size_button, text_size_button, header_alignment, text_alignment, header_alignment_menu, text_alignment_menu, background_button, header_entry, text_block, send_button])
         elif column_index == 1:
             column_frame.rowconfigure(2, weight=1)
             column_frame.rowconfigure(3, weight=2)

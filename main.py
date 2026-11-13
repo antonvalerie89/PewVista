@@ -500,7 +500,7 @@ def get_ui_font_set(family: str, style_name: str, size: int) -> tuple[tkfont.Fon
         slant="italic" if "Italic" in style_name else "roman",
     )
     label_font = tkfont.Font(family=family, size=int(size), weight="bold" if "Bold" in style_name else "normal", slant="italic" if "Italic" in style_name else "roman")
-    input_font = tkfont.Font(family=family, size=int(size), weight="normal", slant="roman")
+    input_font = tkfont.Font(family=family, size=int(size), weight="bold" if "Bold" in style_name else "normal", slant="italic" if "Italic" in style_name else "roman")
     return header_font, label_font, input_font
 
 
@@ -547,13 +547,35 @@ def set_widget_colors(widget: tk.Widget, theme: dict) -> None:
         safe_configure(bg=theme["menu_bg"], fg=theme["menu_fg"], activebackground=active_background, activeforeground=active_foreground, disabledforeground=theme["border"])
         return
     if widget_class in {"Checkbutton", "Radiobutton"}:
-        safe_configure(bg=theme["menu_bg"], fg=theme["menu_fg"], activebackground=active_background, activeforeground=active_foreground, selectcolor=background, disabledforeground=theme["border"])
+        safe_configure(
+            bg=background,
+            fg=foreground,
+            activebackground=active_background,
+            activeforeground=active_foreground,
+            selectcolor=background,
+            disabledforeground=theme["border"],
+        )
         return
     if widget_class in {"Entry", "Text"}:
-        safe_configure(bg="#ffffff", fg=foreground, insertbackground=foreground, disabledforeground=theme["border"])
+        safe_configure(
+            bg=background,
+            fg=foreground,
+            readonlybackground=background,
+            disabledbackground=background,
+            insertbackground=foreground,
+            selectbackground=theme["accent"],
+            selectforeground=theme["menu_fg"],
+            disabledforeground=theme["border"],
+        )
         return
     if widget_class == "Listbox":
-        safe_configure(bg="#ffffff", fg=foreground, disabledforeground=theme["border"])
+        safe_configure(
+            bg=background,
+            fg=foreground,
+            selectbackground=theme["accent"],
+            selectforeground=theme["menu_fg"],
+            disabledforeground=theme["border"],
+        )
         return
     if widget_class == "Canvas":
         safe_configure(bg=background, highlightbackground=theme["border"])
@@ -602,27 +624,30 @@ def configure_tabs_notebook_style(notebook: ttk.Notebook, theme: dict, family: s
     try_configure_ttk_style(style, "ContentTabs.TNotebook", background=theme["panel_bg"], borderwidth=0)
     try_configure_ttk_style(style, "ContentTabs.TNotebook.Tab", background=theme["tabs_bg"], foreground=theme["tabs_fg"], padding=tab_padding, font=tab_font)
     try_map_ttk_style(style, "ContentTabs.TNotebook.Tab", background=[("selected", theme["accent"]), ("active", theme["menu_bg"])], foreground=[("disabled", theme["border"]), ("selected", theme["menu_fg"]), ("active", theme["text"]), ("!selected", theme["tabs_fg"])])
-    try_configure_ttk_style(style, "Content.TCombobox", background=theme["menu_bg"], foreground=theme["text"], fieldbackground=theme["panel_bg"], arrowcolor=theme["text"], font=(family, int(size), "normal"))
+    try_configure_ttk_style(style, "Content.TCombobox", background=theme["menu_bg"], foreground=theme["text"], fieldbackground=theme["panel_bg"], arrowcolor=theme["text"], font=tab_font)
     try_map_ttk_style(style, "Content.TCombobox", fieldbackground=[("readonly", theme["panel_bg"])], foreground=[("disabled", theme["border"]), ("readonly", theme["text"])], selectbackground=[("readonly", theme["accent"])], selectforeground=[("readonly", theme["menu_fg"])])
     # Default ttk styles color popup dialogs (Settings, Licenses, and others) to match the theme.
     try_configure_ttk_style(style, "TFrame", background=theme["panel_bg"])
-    try_configure_ttk_style(style, "TLabel", background=theme["panel_bg"], foreground=theme["text"])
-    try_configure_ttk_style(style, "TCheckbutton", background=theme["panel_bg"], foreground=theme["text"])
-    try_configure_ttk_style(style, "TRadiobutton", background=theme["panel_bg"], foreground=theme["text"])
+    try_configure_ttk_style(style, "TLabel", background=theme["panel_bg"], foreground=theme["text"], font=tab_font)
+    try_configure_ttk_style(style, "TCheckbutton", background=theme["panel_bg"], foreground=theme["text"], indicatorbackground=theme["panel_bg"], indicatorforeground=theme["accent"], font=tab_font)
+    try_map_ttk_style(style, "TCheckbutton", background=[("active", theme["menu_bg"]), ("!active", theme["panel_bg"])], foreground=[("disabled", theme["border"]), ("active", theme["text"]), ("!active", theme["text"])], indicatorcolor=[("selected", theme["accent"]), ("!selected", theme["panel_bg"])], indicatorbackground=[("selected", theme["accent"]), ("!selected", theme["panel_bg"])])
+    try_configure_ttk_style(style, "TRadiobutton", background=theme["panel_bg"], foreground=theme["text"], indicatorbackground=theme["panel_bg"], indicatorforeground=theme["accent"], font=tab_font)
+    try_map_ttk_style(style, "TRadiobutton", background=[("active", theme["menu_bg"]), ("!active", theme["panel_bg"])], foreground=[("disabled", theme["border"]), ("active", theme["text"]), ("!active", theme["text"])], indicatorcolor=[("selected", theme["accent"]), ("!selected", theme["panel_bg"])])
     try_configure_ttk_style(style, "TLabelframe", background=theme["panel_bg"], bordercolor=theme["border"])
-    try_configure_ttk_style(style, "TLabelframe.Label", background=theme["panel_bg"], foreground=theme["text"])
-    try_configure_ttk_style(style, "TButton", background=theme["menu_bg"], foreground=theme["menu_fg"], bordercolor=theme["border"])
+    try_configure_ttk_style(style, "TLabelframe.Label", background=theme["panel_bg"], foreground=theme["text"], font=tab_font)
+    try_configure_ttk_style(style, "TButton", background=theme["menu_bg"], foreground=theme["menu_fg"], bordercolor=theme["border"], font=tab_font)
     try_map_ttk_style(style, "TButton", background=[("pressed", theme["accent"]), ("active", theme["accent"])], foreground=[("disabled", theme["border"]), ("pressed", theme["menu_fg"]), ("active", "#ffffff")])
-    try_configure_ttk_style(style, "TEntry", fieldbackground=theme["panel_bg"], foreground=theme["text"], insertcolor=theme["text"], bordercolor=theme["border"])
-    try_configure_ttk_style(style, "TCombobox", background=theme["menu_bg"], foreground=theme["text"], fieldbackground=theme["panel_bg"], arrowcolor=theme["text"], bordercolor=theme["border"])
+    try_configure_ttk_style(style, "TEntry", fieldbackground=theme["panel_bg"], foreground=theme["text"], insertcolor=theme["text"], bordercolor=theme["border"], font=tab_font)
+    try_configure_ttk_style(style, "TCombobox", background=theme["menu_bg"], foreground=theme["text"], fieldbackground=theme["panel_bg"], arrowcolor=theme["text"], bordercolor=theme["border"], font=tab_font)
     try_map_ttk_style(style, "TCombobox", fieldbackground=[("readonly", theme["panel_bg"])], foreground=[("disabled", theme["border"]), ("readonly", theme["text"])], selectbackground=[("readonly", theme["accent"])], selectforeground=[("readonly", theme["menu_fg"])])
     try_configure_ttk_style(style, "TNotebook", background=theme["panel_bg"], bordercolor=theme["border"])
-    try_configure_ttk_style(style, "TNotebook.Tab", background=theme["tabs_bg"], foreground=theme["tabs_fg"], padding=tab_padding)
+    try_configure_ttk_style(style, "TNotebook.Tab", background=theme["tabs_bg"], foreground=theme["tabs_fg"], padding=tab_padding, font=tab_font)
     try_map_ttk_style(style, "TNotebook.Tab", background=[("selected", theme["accent"]), ("active", theme["menu_bg"])], foreground=[("selected", theme["menu_fg"]), ("active", theme["text"]), ("!selected", theme["tabs_fg"])])
     try:
         # Dropdown lists of comboboxes are classic Tk listboxes configured through the option database.
         notebook.option_add("*TCombobox*Listbox.background", theme["panel_bg"])
         notebook.option_add("*TCombobox*Listbox.foreground", theme["text"])
+        notebook.option_add("*TCombobox*Listbox.font", tab_font)
         notebook.option_add("*TCombobox*Listbox.selectBackground", theme["accent"])
         notebook.option_add("*TCombobox*Listbox.selectForeground", theme["menu_fg"])
     except tk.TclError:

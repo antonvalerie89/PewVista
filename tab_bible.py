@@ -927,7 +927,7 @@ def build_bible_reader_tab(tab_frame: tk.Frame, context: dict[str, object]) -> N
             scroll_host.rowconfigure(0, weight=1)
 
             list_canvas = tk.Canvas(scroll_host, highlightthickness=0, borderwidth=0, width=320, height=min(280, max(90, len(source_names) * 28)))
-            list_scrollbar = tk.Scrollbar(scroll_host, orient="vertical", command=list_canvas.yview)
+            list_scrollbar = ttk.Scrollbar(scroll_host, orient="vertical", command=list_canvas.yview)
             list_canvas.configure(yscrollcommand=list_scrollbar.set)
             list_canvas.grid(row=0, column=0, sticky="nsew")
             list_scrollbar.grid(row=0, column=1, sticky="ns")
@@ -960,15 +960,13 @@ def build_bible_reader_tab(tab_frame: tk.Frame, context: dict[str, object]) -> N
             for row_idx, source_name in enumerate(source_names):
                 variable = bible_check_vars.setdefault(source_name, tk.BooleanVar(value=source_name in selected_names))
                 variable.set(source_name in selected_names)
-                chk = tk.Checkbutton(
+                chk = ttk.Checkbutton(
                     list_frame,
                     text=source_name,
                     variable=variable,
-                    anchor="w",
-                    justify="left",
                     command=lambda selected_name=source_name: on_bible_selection_changed(selected_name),
                 )
-                chk.grid(row=row_idx, column=0, sticky="ew", pady=1)
+                chk.grid(row=row_idx, column=0, sticky="ew", padx=4, pady=2)
                 chk.bind("<MouseWheel>", scroll_bible_list, add="+")
                 chk.bind("<Button-4>", scroll_bible_list, add="+")
                 chk.bind("<Button-5>", scroll_bible_list, add="+")

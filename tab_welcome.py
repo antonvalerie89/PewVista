@@ -1771,8 +1771,9 @@ def build_welcome_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             delete_note_button.grid(row=0, column=2, sticky="ew", padx=(4, 0))
             tab_widgets.extend([column_frame, title, note_title_entry, welcome_note_list, note_actions, new_note_button, save_note_button, delete_note_button])
             tab_labels.append(title)
+            tab_labels.extend([title, background_display])
             tab_inputs.extend([note_title_entry, welcome_note_list, new_note_button, save_note_button, delete_note_button])
-            apply_layout_style([column_frame, note_title_entry, welcome_note_list, note_actions, new_note_button, save_note_button, delete_note_button], label_widgets=[title], input_widgets=[note_title_entry, welcome_note_list, new_note_button, save_note_button, delete_note_button])
+            apply_layout_style([column_frame, note_title_entry, welcome_note_list, note_actions, new_note_button, save_note_button, delete_note_button], label_widgets=[title, background_display, scroll_speed_display], input_widgets=[note_title_entry, welcome_note_list, new_note_button, save_note_button, delete_note_button])
         elif column_index == 2:
             title = tk.Label(column_frame, text="Preview", justify="center", anchor="center")
             title.grid(row=0, column=0, sticky="ew")
