@@ -846,7 +846,14 @@ public static class SetupConsoleWindow {
     else { Write-Progress -Activity "Installing PewVista for $ChurchName" -Completed }
     Write-Host "PewVista all-users installation complete: $DestinationDirectory"
     Write-Host "Shared databases/settings: $DataDirectory"
-    if (-not $NoLaunch) { Start-Process -FilePath $executable -WorkingDirectory $DestinationDirectory }
+    if (-not $NoLaunch) {
+        try {
+            & explorer.exe $executable
+        }
+        catch {
+            Start-Process -FilePath $executable -WorkingDirectory $DestinationDirectory
+        }
+    }
     exit 0
 }
 catch {

@@ -475,7 +475,15 @@ try {
         }
     }
     Remove-SecureStaging $SecureStagingDirectory
-    if (-not $NoLaunch) { Start-Process -FilePath $executable -WorkingDirectory $InstallDirectory }
+    if (-not $NoLaunch) {
+        $launchCommand = "`"$executable`""
+        try {
+            & explorer.exe $executable
+        }
+        catch {
+            Start-Process -FilePath $executable -WorkingDirectory $InstallDirectory
+        }
+    }
     exit 0
 }
 catch {

@@ -1324,6 +1324,11 @@ class ObsSecondaryDisplayController:
                         settings["auto_launch"] = bool(loaded_settings.get("auto_launch_obs"))
             except (OSError, json.JSONDecodeError):
                 pass
+        if not self._uses_shared_data():
+            # Keep the source workspace on its own websocket port so it never collides
+            # with an installed PewVista's obs64.exe running on the machine's port 4455.
+            if "port" not in loaded_settings:
+                settings["port"] = 4456
         if not str(settings.get("password") or ""):
             # OBS's remote-control port listens on every network interface, so an empty
             # password would let any device on the church network drive the projector.
@@ -1546,26 +1551,20 @@ class ObsSecondaryDisplayController:
         config_path.write_text(json.dumps(existing_config, indent=2), encoding="utf-8")
 
     def _close_stale_private_obs(self, obs_path: Path) -> None:
-        """What: Close PewVista's own OBS copies when they run without PewVista's connection.
+        """What: Close PewVista's own OBS copy when it runs without PewVista's connection.
 
-        Why included: OBS's updater or another PewVista copy can leave an obs_portable
-        instance holding port 4455 with a different connection password, which blocks
-        a second OBS launch and causes websocket authentication to fail.
+        Why included: OBS's updater can restart OBS outside PewVista; that instance lacks
+        the connection password, and a second launch is then blocked as "already running",
+        so connecting timed out.
         Where used: _launch_obs_if_needed() before starting OBS, and ObsSecondaryDisplayController.close().
-        Returns: None; only processes running PewVista's private portable OBS files are closed.
+        Returns: None; only processes running this installation's private portable OBS file are closed.
         """
         if sys.platform != "win32" or not self._is_portable_obs_path(obs_path):
             return
         target = str(Path(obs_path).resolve()).replace("'", "''")
-        local_root = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "PewVista"
-        local_prefix = str(local_root.resolve()).replace("'", "''")
         script = (
             "Get-Process obs64 -ErrorAction SilentlyContinue | "
-            "Where-Object { (-not $_.Path) -or ("
-            f"([IO.Path]::GetFullPath($_.Path) -ieq '{target}') -or "
-            f"(([IO.Path]::GetFullPath($_.Path)).StartsWith('{local_prefix}', [StringComparison]::OrdinalIgnoreCase) -and ($_.Path -match '\\\\obs_portable\\\\')) -or "
-            "($_.Path -match '\\\\Resourses\\\\obs_portable\\\\')"
-            ") } | "
+            f"Where-Object {{ $_.Path -and ([IO.Path]::GetFullPath($_.Path) -ieq '{target}') }} | "
             "ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue; $_.WaitForExit(10000) | Out-Null }"
         )
         try:
