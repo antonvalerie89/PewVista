@@ -1496,6 +1496,7 @@ class ObsSecondaryDisplayController:
         Returns: None; failures are logged and never block the live screen.
         """
         profile = self._portable_obs_root_path() / "config" / "obs-studio"
+        shutil.rmtree(profile / ".sentinel", ignore_errors=True)
         for ini_name in ("global.ini", "user.ini"):
             ini_path = profile / ini_name
             try:
@@ -1560,17 +1561,19 @@ class ObsSecondaryDisplayController:
         local_prefix = str(local_root.resolve()).replace("'", "''")
         script = (
             "Get-Process obs64 -ErrorAction SilentlyContinue | "
-            "Where-Object { $_.Path -and ("
+            "Where-Object { (-not $_.Path) -or ("
             f"([IO.Path]::GetFullPath($_.Path) -ieq '{target}') -or "
-            f"(([IO.Path]::GetFullPath($_.Path)).StartsWith('{local_prefix}', [StringComparison]::OrdinalIgnoreCase) -and ($_.Path -match '\\\\obs_portable\\\\'))"
+            f"(([IO.Path]::GetFullPath($_.Path)).StartsWith('{local_prefix}', [StringComparison]::OrdinalIgnoreCase) -and ($_.Path -match '\\\\obs_portable\\\\')) -or "
+            "($_.Path -match '\\\\Resourses\\\\obs_portable\\\\')"
             ") } | "
-            "ForEach-Object { Stop-Process -Id $_.Id -Force; $_.WaitForExit(10000) | Out-Null }"
+            "ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue; $_.WaitForExit(10000) | Out-Null }"
         )
         try:
             subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
                            capture_output=True, timeout=20, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         except (OSError, subprocess.SubprocessError) as error:
             log_exception("obs_secondary_display.close_stale_obs", error)
+        shutil.rmtree(self._portable_obs_root_path() / "config" / "obs-studio" / ".sentinel", ignore_errors=True)
 
     def _obs_launch_command(self, obs_path: Path) -> tuple[list[str], Path]:
         """What: Build OBS launch arguments and its executable working directory.
