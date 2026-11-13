@@ -643,6 +643,12 @@ def configure_tabs_notebook_style(notebook: ttk.Notebook, theme: dict, family: s
     try_configure_ttk_style(style, "TNotebook", background=theme["panel_bg"], bordercolor=theme["border"])
     try_configure_ttk_style(style, "TNotebook.Tab", background=theme["tabs_bg"], foreground=theme["tabs_fg"], padding=tab_padding, font=tab_font)
     try_map_ttk_style(style, "TNotebook.Tab", background=[("selected", theme["accent"]), ("active", theme["menu_bg"])], foreground=[("selected", theme["menu_fg"]), ("active", theme["text"]), ("!selected", theme["tabs_fg"])])
+    row_height = max(24, int(size) + 12)
+    try_configure_ttk_style(style, "Treeview", background=theme["panel_bg"], fieldbackground=theme["panel_bg"], foreground=theme["text"], bordercolor=theme["border"], font=tab_font, rowheight=row_height)
+    try_map_ttk_style(style, "Treeview", background=[("selected", theme["accent"])], foreground=[("selected", theme["menu_fg"])])
+    try_configure_ttk_style(style, "Treeview.Heading", background=theme["menu_bg"], foreground=theme["menu_fg"], bordercolor=theme["border"], font=tab_font)
+    try_map_ttk_style(style, "Treeview.Heading", background=[("active", theme["accent"])], foreground=[("active", theme["menu_fg"])])
+    try_configure_ttk_style(style, "TScrollbar", background=theme["menu_bg"], troughcolor=theme["panel_bg"], arrowcolor=theme["text"], bordercolor=theme["border"])
     try:
         # Dropdown lists of comboboxes are classic Tk listboxes configured through the option database.
         notebook.option_add("*TCombobox*Listbox.background", theme["panel_bg"])
@@ -2274,6 +2280,7 @@ def build_ui() -> tk.Tk:
         if isinstance(existing, dict) and isinstance(existing.get("window"), tk.Toplevel) and existing["window"].winfo_exists():
             existing["set_cancel"](on_cancel)
             existing["set_stage"](initial_subtitle, initial_status, 0)
+            existing["refresh_style"]()
             return existing
         win = tk.Toplevel(root)
         win.title(f"{PRODUCT_NAME} | Update")
@@ -2288,31 +2295,31 @@ def build_ui() -> tk.Tk:
         pos_x = max(0, (screen_w - 620) // 2)
         pos_y = max(0, (screen_h - 280) // 2)
         win.geometry(f"620x280+{pos_x}+{pos_y}")
-        win.configure(bg="#f5f7fa")
 
-        header = tk.Frame(win, bg="#1d414e", height=88)
+        header = tk.Frame(win, height=88)
         header.pack(fill="x", side="top")
         header.pack_propagate(False)
-        tk.Label(header, text=PRODUCT_NAME, bg="#1d414e", fg="#ffffff", font=("Segoe UI", 16, "bold")).place(x=24, y=14)
+        title_lbl = tk.Label(header, text=PRODUCT_NAME, anchor="w", justify="left")
+        title_lbl.place(x=24, y=14)
         subtitle_var = tk.StringVar(master=win, value=initial_subtitle)
-        tk.Label(header, textvariable=subtitle_var, bg="#1d414e", fg="#d2e6e5", font=("Segoe UI", 10)).place(x=26, y=52)
+        subtitle_lbl = tk.Label(header, textvariable=subtitle_var, anchor="w", justify="left")
+        subtitle_lbl.place(x=26, y=52)
 
-        body = tk.Frame(win, bg="#f5f7fa")
+        body = tk.Frame(win)
         body.pack(fill="both", expand=True, padx=26, pady=16)
         status_var = tk.StringVar(master=win, value=initial_status)
-        tk.Label(body, textvariable=status_var, bg="#f5f7fa", fg="#1f2328", font=("Segoe UI", 10), anchor="w", justify="left", wraplength=565).pack(fill="x", pady=(2, 10))
+        status_lbl = tk.Label(body, textvariable=status_var, anchor="w", justify="left", wraplength=565)
+        status_lbl.pack(fill="x", pady=(2, 10))
         progress_bar = ttk.Progressbar(body, mode="determinate", maximum=100, value=0)
         progress_bar.pack(fill="x", pady=(0, 10))
-        tk.Label(
+        detail_lbl = tk.Label(
             body,
             text="Your existing data and settings are preserved and backed up before program files are updated.",
-            bg="#f5f7fa",
-            fg="#4e5d63",
-            font=("Segoe UI", 10),
             anchor="w",
             justify="left",
             wraplength=565,
-        ).pack(fill="x")
+        )
+        detail_lbl.pack(fill="x")
         cancel_holder = {"callback": on_cancel}
 
         def trigger_cancel() -> None:
@@ -2320,10 +2327,26 @@ def build_ui() -> tk.Tk:
             if callable(cb):
                 cb()
 
-        footer = tk.Frame(body, bg="#f5f7fa")
+        footer = tk.Frame(body)
         footer.pack(fill="x", side="bottom", pady=(8, 0))
         cancel_btn = tk.Button(footer, text="Cancel", width=12, command=trigger_cancel)
         cancel_btn.pack(side="right")
+
+        def refresh_popup_style() -> None:
+            if not win.winfo_exists():
+                return
+            theme = get_theme_by_name(selected_theme.get())
+            header_font, label_font, input_font = get_ui_font_set(selected_font_family.get(), selected_font_style.get(), selected_font_size.get())
+            apply_layout_style_for_popup(
+                [win, body, footer, status_lbl, detail_lbl, cancel_btn],
+                label_widgets=[status_lbl, detail_lbl],
+                input_widgets=[cancel_btn],
+            )
+            header.configure(bg=theme["menu_bg"])
+            title_lbl.configure(bg=theme["menu_bg"], fg=theme["menu_fg"], font=header_font)
+            subtitle_lbl.configure(bg=theme["menu_bg"], fg=theme["menu_fg"], font=label_font)
+
+        refresh_popup_style()
         win.protocol("WM_DELETE_WINDOW", trigger_cancel)
         win.lift()
         win.focus_force()
@@ -2346,7 +2369,7 @@ def build_ui() -> tk.Tk:
                 except tk.TclError:
                     pass
 
-        handle = {"window": win, "set_stage": set_stage, "set_cancel": set_cancel, "close": close_window}
+        handle = {"window": win, "set_stage": set_stage, "set_cancel": set_cancel, "refresh_style": refresh_popup_style, "close": close_window}
         update_state["progress_window"] = handle
         return handle
 
@@ -3864,13 +3887,18 @@ def build_ui() -> tk.Tk:
         details_text.configure(yscrollcommand=details_scrollbar.set)
 
         apply_layout_style_for_popup(
-            [popup, wrapper, tree_frame, details_frame, history_tree, tree_scrollbar, details_text, details_scrollbar],
+            [popup, wrapper, tree_frame, details_frame, history_tree, tree_scrollbar, delete_history_button, details_text, details_scrollbar],
             label_widgets=[tree_frame, details_frame],
-            input_widgets=[history_tree, details_text],
+            input_widgets=[history_tree, delete_history_button, details_text],
         )
 
         history_tree.bind("<<TreeviewSelect>>", render_selected_history_entry, add="+")
         history_popup_state["window"] = popup
+        history_popup_state["wrapper"] = wrapper
+        history_popup_state["tree_frame"] = tree_frame
+        history_popup_state["details_frame"] = details_frame
+        history_popup_state["tree_scrollbar"] = tree_scrollbar
+        history_popup_state["details_scrollbar"] = details_scrollbar
         history_popup_state["tree"] = history_tree
         history_popup_state["details"] = details_text
         history_popup_state["delete_button"] = delete_history_button
@@ -3885,10 +3913,8 @@ def build_ui() -> tk.Tk:
             Where used: WM_DELETE_WINDOW handler installed by open_history_window().
             Returns: None; resets History popup state.
             """
-            history_popup_state["window"] = None
-            history_popup_state["tree"] = None
-            history_popup_state["details"] = None
-            history_popup_state["delete_button"] = None
+            for key in ("window", "wrapper", "tree_frame", "details_frame", "tree_scrollbar", "details_scrollbar", "tree", "details", "delete_button"):
+                history_popup_state[key] = None
             history_popup_state["entries"] = []
             popup.destroy()
 
@@ -3958,6 +3984,120 @@ def build_ui() -> tk.Tk:
         for widget in input_widgets or []:
             set_widget_font(widget, input_font)
 
+    def show_themed_message(title: str, message: str, *, kind: str = "info", parent: tk.Misc | None = None, default: str | None = None) -> bool | str:
+        """What: Present a themed, GUI-font-styled message or Yes/No dialog instead of native OS MessageBox.
+
+        Why included: Native Windows messageboxes ignore PewVista's dark/light themes and GUI font settings.
+        Where used: Installed onto tkinter.messagebox.showinfo, showwarning, showerror, and askyesno.
+        Returns: True/False for askyesno, or 'ok' for info/warning/error dialogs.
+        """
+        host = parent.winfo_toplevel() if isinstance(parent, tk.Misc) and parent.winfo_exists() else root
+        if not host.winfo_exists():
+            return False if kind == "yesno" else "ok"
+        theme = get_theme_by_name(selected_theme.get())
+        header_font, label_font, input_font = get_ui_font_set(selected_font_family.get(), selected_font_style.get(), selected_font_size.get())
+        dialog = tk.Toplevel(host)
+        dialog.title(str(title or PRODUCT_NAME))
+        dialog.transient(host)
+        dialog.resizable(False, False)
+        apply_application_icon(dialog)
+
+        outer = tk.Frame(dialog, bd=2, relief="solid", padx=18, pady=16)
+        outer.pack(fill="both", expand=True)
+        outer.columnconfigure(0, weight=1)
+        outer.rowconfigure(1, weight=1)
+
+        heading_lbl = tk.Label(outer, text=str(title or PRODUCT_NAME), anchor="w", justify="left")
+        heading_lbl.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+
+        msg_lbl = tk.Label(outer, text=str(message or ""), anchor="w", justify="left", wraplength=520)
+        msg_lbl.grid(row=1, column=0, sticky="nsew", pady=(0, 16))
+
+        btn_row = tk.Frame(outer)
+        btn_row.grid(row=2, column=0, sticky="e")
+
+        result: dict[str, bool | str] = {"value": False if kind == "yesno" else "ok"}
+
+        def close_with(val: bool | str) -> None:
+            result["value"] = val
+            if dialog.winfo_exists():
+                dialog.destroy()
+
+        dialog_widgets: list[tk.Widget] = [dialog, outer, heading_lbl, msg_lbl, btn_row]
+        dialog_inputs: list[tk.Widget] = []
+
+        if kind == "yesno":
+            yes_btn = tk.Button(btn_row, text="Yes", width=10, command=lambda: close_with(True))
+            no_btn = tk.Button(btn_row, text="No", width=10, command=lambda: close_with(False))
+            yes_btn.pack(side="left", padx=(0, 8))
+            no_btn.pack(side="left")
+            dialog_widgets.extend([yes_btn, no_btn])
+            dialog_inputs.extend([yes_btn, no_btn])
+            default_btn = no_btn if str(default or "").lower() == "no" else yes_btn
+            dialog.bind("<Return>", lambda _e: default_btn.invoke())
+            dialog.bind("<Escape>", lambda _e: close_with(False))
+            dialog.protocol("WM_DELETE_WINDOW", lambda: close_with(False))
+        else:
+            ok_btn = tk.Button(btn_row, text="OK", width=10, command=lambda: close_with("ok"))
+            ok_btn.pack(side="right")
+            dialog_widgets.append(ok_btn)
+            dialog_inputs.append(ok_btn)
+            default_btn = ok_btn
+            dialog.bind("<Return>", lambda _e: close_with("ok"))
+            dialog.bind("<Escape>", lambda _e: close_with("ok"))
+            dialog.protocol("WM_DELETE_WINDOW", lambda: close_with("ok"))
+
+        apply_layout_style_for_popup(dialog_widgets, label_widgets=[msg_lbl], input_widgets=dialog_inputs)
+        heading_lbl.configure(bg=theme["panel_bg"], fg=theme["accent"], font=header_font)
+
+        dialog.update_idletasks()
+        req_w = max(360, min(620, dialog.winfo_reqwidth()))
+        req_h = max(150, min(520, dialog.winfo_reqheight()))
+        screen_w = dialog.winfo_screenwidth()
+        screen_h = dialog.winfo_screenheight()
+        try:
+            host_x = host.winfo_rootx() + max(0, (host.winfo_width() - req_w) // 2)
+            host_y = host.winfo_rooty() + max(0, (host.winfo_height() - req_h) // 2)
+        except tk.TclError:
+            host_x = (screen_w - req_w) // 2
+            host_y = (screen_h - req_h) // 2
+        pos_x = min(max(16, host_x), max(16, screen_w - req_w - 16))
+        pos_y = min(max(16, host_y), max(16, screen_h - req_h - 48))
+        dialog.geometry(f"{req_w}x{req_h}+{pos_x}+{pos_y}")
+        dialog.grab_set()
+        default_btn.focus_set()
+        host.wait_window(dialog)
+        try:
+            host.grab_release()
+        except tk.TclError:
+            pass
+        return result["value"]
+
+    for _fn_name, _kind in (("showinfo", "info"), ("showwarning", "warning"), ("showerror", "error"), ("askyesno", "yesno")):
+        _current_fn = getattr(messagebox, _fn_name, None)
+        if getattr(_current_fn, "__module__", "") == "tkinter.messagebox":
+            if _kind == "yesno":
+                setattr(messagebox, _fn_name, lambda title="", message="", _k=_kind, **kw: bool(show_themed_message(title, message, kind=_k, parent=kw.get("parent"), default=kw.get("default"))))
+            else:
+                setattr(messagebox, _fn_name, lambda title="", message="", _k=_kind, **kw: show_themed_message(title, message, kind=_k, parent=kw.get("parent")))
+
+    def refresh_open_popups_style() -> None:
+        """What: Reapply current theme and GUI fonts to any open History or Update progress popup.
+
+        Why included: Changing theme/font while a popup is open should update it live.
+        Where used: handle_theme_change() and handle_font_change().
+        Returns: None.
+        """
+        hist_win = history_popup_state.get("window")
+        if isinstance(hist_win, tk.Toplevel) and hist_win.winfo_exists():
+            hist_widgets = [w for k in ("window", "wrapper", "tree_frame", "details_frame", "tree_scrollbar", "details_scrollbar", "tree", "details", "delete_button") if isinstance((w := history_popup_state.get(k)), tk.Widget)]
+            hist_labels = [w for k in ("tree_frame", "details_frame") if isinstance((w := history_popup_state.get(k)), tk.Widget)]
+            hist_inputs = [w for k in ("tree", "delete_button", "details") if isinstance((w := history_popup_state.get(k)), tk.Widget)]
+            apply_layout_style_for_popup(hist_widgets, label_widgets=hist_labels, input_widgets=hist_inputs)
+        upd_handle = update_state.get("progress_window")
+        if isinstance(upd_handle, dict) and callable(upd_handle.get("refresh_style")):
+            upd_handle["refresh_style"]()
+
     def handle_theme_change(theme_name: str) -> None:
         """Apply a selected palette throughout the app and persist preferences.
 
@@ -3969,6 +4109,7 @@ def build_ui() -> tk.Tk:
         Returns: None; updates widgets and settings storage.
         """
         apply_theme(root, container, top_sections, bottom_section, menu_widgets, theme_name)
+        refresh_open_popups_style()
         refresh_dynamic_styles = bottom_section.get("display_state", {}).get("refresh_dynamic_styles") if isinstance(bottom_section.get("display_state"), dict) else None
         if callable(refresh_dynamic_styles):
             refresh_dynamic_styles()
@@ -3985,6 +4126,7 @@ def build_ui() -> tk.Tk:
         Returns: None; updates widgets and settings storage.
         """
         apply_font_settings(ui_parts, selected_font_family.get(), selected_font_style.get(), selected_font_size.get())
+        refresh_open_popups_style()
         refresh_dynamic_styles = bottom_section.get("display_state", {}).get("refresh_dynamic_styles") if isinstance(bottom_section.get("display_state"), dict) else None
         if callable(refresh_dynamic_styles):
             refresh_dynamic_styles()
