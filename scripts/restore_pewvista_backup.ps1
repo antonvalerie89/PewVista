@@ -21,7 +21,7 @@ function Test-SameFolder([string]$a, [string]$b) {
 }
 
 try {
-    $answer = Show-Message "Restore your PewVista signing keys, grammar checker, license records, and Desktop License Tool icon from this backup onto this PC?" "Restore PewVista" "YesNo" "Question"
+    $answer = Show-Message "Restore your PewVista signing keys, project from GitHub (if missing), Python 3.13 environment, grammar checker, license records, and Desktop License Tool icon from this backup onto this PC?" "Restore PewVista" "YesNo" "Question"
     if ($answer -ne "Yes") { exit 0 }
 
     $keysSource = Join-Path $backup "PewVista Signing"
@@ -38,6 +38,37 @@ try {
         }
         Copy-Item -LiteralPath $keysSource -Destination $keysTarget -Recurse
         $report.Add("Signing keys: restored to $keysTarget")
+    }
+
+    # Ensure Git and GitHub CLI are available for repository management and release publishing
+    $gitCmd = (Get-Command git.exe -ErrorAction SilentlyContinue)
+    if (-not $gitCmd -and (Test-Path -LiteralPath "C:\Program Files\Git\cmd\git.exe")) {
+        $env:Path = "C:\Program Files\Git\cmd;" + $env:Path
+        $gitCmd = (Get-Command git.exe -ErrorAction SilentlyContinue)
+    }
+    if (-not $gitCmd -and (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+        & winget.exe install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements --silent | Out-Null
+        if (Test-Path -LiteralPath "C:\Program Files\Git\cmd\git.exe") {
+            $env:Path = "C:\Program Files\Git\cmd;" + $env:Path
+            $gitCmd = (Get-Command git.exe -ErrorAction SilentlyContinue)
+        }
+    }
+    if (-not (Test-Path -LiteralPath "C:\Program Files\GitHub CLI\gh.exe") -and (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+        & winget.exe install --id GitHub.cli -e --source winget --accept-package-agreements --accept-source-agreements --silent | Out-Null
+    }
+
+    # Clone or reconnect the GitHub repository at $project
+    if (-not (Test-Path -LiteralPath (Join-Path $project "licensing.py")) -and $gitCmd) {
+        & $gitCmd.Source clone "https://github.com/antonvalerie89/PewVista.git" $project | Out-Null
+        if (Test-Path -LiteralPath (Join-Path $project "licensing.py")) {
+            $report.Add("Project: cloned from GitHub to $project.")
+        }
+    }
+    elseif ((Test-Path -LiteralPath (Join-Path $project "licensing.py")) -and -not (Test-Path -LiteralPath (Join-Path $project ".git")) -and $gitCmd) {
+        & $gitCmd.Source clone --bare "https://github.com/antonvalerie89/PewVista.git" (Join-Path $project ".git") | Out-Null
+        & $gitCmd.Source -C $project config --bool core.bare false
+        & $gitCmd.Source -C $project reset --mixed HEAD | Out-Null
+        $report.Add("Git repository: reconnected at $project.")
     }
 
     if (Test-Path -LiteralPath (Join-Path $project "licensing.py")) {
@@ -61,6 +92,24 @@ try {
             Copy-Item -LiteralPath $records -Destination (Join-Path $project "license_records (from backup).txt") -Force
             $report.Add("License records: this PC already has a different list; the backup copy was saved as 'license_records (from backup).txt'.")
         }
+
+        # Ensure a working Python 3.13 virtual environment with all PewVista packages
+        $venvPython = Join-Path $project ".venv\Scripts\python.exe"
+        $venvReady = $false
+        if (Test-Path -LiteralPath $venvPython) {
+            & $venvPython -c "import sys; assert sys.version_info[:2] == (3, 13); import cryptography, PIL, sqlcipher3, PyInstaller" 2>$null
+            $venvReady = ($LASTEXITCODE -eq 0)
+        }
+        if (-not $venvReady -and (Get-Command uv.exe -ErrorAction SilentlyContinue)) {
+            & uv.exe python install 3.13 | Out-Null
+            & uv.exe venv (Join-Path $project ".venv") --python 3.13 --clear | Out-Null
+            if (Test-Path -LiteralPath $venvPython) {
+                & $venvPython -m ensurepip | Out-Null
+                & $venvPython -m pip install pillow cryptography imageio imageio-ffmpeg obsws-python pypdf spylls==0.1.7 langid==1.1.6 sqlcipher3-wheels pyinstaller | Out-Null
+                $report.Add("Python 3.13 environment: created and packages installed.")
+            }
+        }
+
         $licenseTool = Join-Path $project "license_tool.pyw"
         if (Test-Path -LiteralPath $licenseTool) {
             $pythonw = Join-Path $project ".venv\Scripts\pythonw.exe"
