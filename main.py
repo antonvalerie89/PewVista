@@ -2258,6 +2258,79 @@ def build_ui() -> tk.Tk:
             lambda report: import_service_days_archive(Path(archive_path), selected_dates, mode, get_app_data_path(), report),
             "Selected service days imported with their referenced songs/backgrounds. Restart the app to reload them.")
 
+    def open_update_progress_window(initial_subtitle: str, initial_status: str) -> dict[str, object]:
+        """What: Open or reuse a visible update progress popup matching the external updater window.
+
+        Why included: Updating the Help menu label while the menu is closed gave no visible
+        feedback during update download and preparation.
+        Where used: check_for_updates() download stage and install_windows_update() preparation stage.
+        Returns: Dictionary with the popup window and helper functions to update or close it.
+        """
+        existing = update_state.get("progress_window")
+        if isinstance(existing, dict) and isinstance(existing.get("window"), tk.Toplevel) and existing["window"].winfo_exists():
+            existing["set_stage"](initial_subtitle, initial_status, 0)
+            return existing
+        win = tk.Toplevel(root)
+        win.title(f"{PRODUCT_NAME} | Update")
+        win.geometry("620x280")
+        win.minsize(560, 260)
+        win.resizable(False, False)
+        win.transient(root)
+        apply_application_icon(win)
+        win.update_idletasks()
+        screen_w = win.winfo_screenwidth()
+        screen_h = win.winfo_screenheight()
+        pos_x = max(0, (screen_w - 620) // 2)
+        pos_y = max(0, (screen_h - 280) // 2)
+        win.geometry(f"620x280+{pos_x}+{pos_y}")
+        win.configure(bg="#f5f7fa")
+
+        header = tk.Frame(win, bg="#1d414e", height=88)
+        header.pack(fill="x", side="top")
+        header.pack_propagate(False)
+        tk.Label(header, text=PRODUCT_NAME, bg="#1d414e", fg="#ffffff", font=("Segoe UI", 16, "bold")).place(x=24, y=14)
+        subtitle_var = tk.StringVar(master=win, value=initial_subtitle)
+        tk.Label(header, textvariable=subtitle_var, bg="#1d414e", fg="#d2e6e5", font=("Segoe UI", 10)).place(x=26, y=52)
+
+        body = tk.Frame(win, bg="#f5f7fa")
+        body.pack(fill="both", expand=True, padx=26, pady=18)
+        status_var = tk.StringVar(master=win, value=initial_status)
+        tk.Label(body, textvariable=status_var, bg="#f5f7fa", fg="#1f2328", font=("Segoe UI", 10), anchor="w", justify="left", wraplength=565).pack(fill="x", pady=(4, 12))
+        progress_bar = ttk.Progressbar(body, mode="determinate", maximum=100, value=0)
+        progress_bar.pack(fill="x", pady=(0, 12))
+        tk.Label(
+            body,
+            text="Your existing data and settings are preserved and backed up before program files are updated.",
+            bg="#f5f7fa",
+            fg="#4e5d63",
+            font=("Segoe UI", 10),
+            anchor="w",
+            justify="left",
+            wraplength=565,
+        ).pack(fill="x")
+        win.protocol("WM_DELETE_WINDOW", lambda: None)
+        win.lift()
+        win.focus_force()
+
+        def set_stage(subtitle_text: str, status_text: str, percent: int) -> None:
+            if not win.winfo_exists():
+                return
+            subtitle_var.set(subtitle_text)
+            status_var.set(status_text)
+            progress_bar.configure(value=max(0, min(100, int(percent))))
+
+        def close_window() -> None:
+            update_state["progress_window"] = None
+            if win.winfo_exists():
+                try:
+                    win.destroy()
+                except tk.TclError:
+                    pass
+
+        handle = {"window": win, "set_stage": set_stage, "close": close_window}
+        update_state["progress_window"] = handle
+        return handle
+
     def install_windows_update(selected: str | Path | None = None, confirmed: bool = False) -> None:
         """What: Prepare a desktop update ZIP and hand installation to an external process.
 
@@ -2277,11 +2350,15 @@ def build_ui() -> tk.Tk:
         if not confirmed and not messagebox.askyesno("Install Update", "Install this ZIP from a trusted source?\n\nThe app and its bundled OBS will close after preparation. Your databases and settings will be preserved, and existing data/program files will be backed up. The app will restart after installation.", parent=root):
             return
         if not require_terms_acceptance(root):
+            existing_popup = update_state.get("progress_window")
+            if isinstance(existing_popup, dict) and callable(existing_popup.get("close")):
+                existing_popup["close"]()
             messagebox.showinfo("Install Update", "The update was cancelled because the Terms and Conditions were not accepted.", parent=root)
             return
         install_directory = get_app_base_path()
         update_state["busy"] = True
-        help_menu.entryconfigure(update_entry_index, state="disabled", label="Preparing update...")
+        help_menu.entryconfigure(update_entry_index, state="disabled", label="Install Update...")
+        progress_popup = open_update_progress_window("Preparing update", "Verifying and extracting update files... 0%")
 
         def prepare_worker(report_progress):
             """What: Validate and extract the selected archive without touching installed files.
@@ -2294,13 +2371,14 @@ def build_ui() -> tk.Tk:
                 install_directory / "apply_windows_update.ps1", progress=report_progress)
 
         def show_progress(completed: int, total: int) -> None:
-            """What: Display update extraction progress on the Tk thread.
+            """What: Display update extraction progress in the update popup window.
 
             Why included: Users need visible progress while preparing a large package.
             Where used: Update worker progress callback.
             Returns: None.
             """
-            help_menu.entryconfigure(update_entry_index, label=f"Preparing update... {completed * 100 // max(1, total)}%")
+            percent = completed * 100 // max(1, total)
+            progress_popup["set_stage"]("Preparing update", f"Verifying and extracting update files... {percent}%", percent)
 
         def preparation_failed(error: BaseException) -> None:
             """What: Restore the update menu command and report preparation/launch failures.
@@ -2310,6 +2388,7 @@ def build_ui() -> tk.Tk:
             Returns: None.
             """
             update_state["busy"] = False
+            progress_popup["close"]()
             help_menu.entryconfigure(update_entry_index, state="normal", label="Install Update...")
             messagebox.showerror("Install Update", str(error), parent=root)
 
@@ -2320,12 +2399,14 @@ def build_ui() -> tk.Tk:
             Where used: Successful WindowsUpdatePrepare completion callback.
             Returns: None; leaves the app open if process creation fails.
             """
+            progress_popup["set_stage"]("Starting installer", "Preparation complete. Launching update installer...", 100)
             try:
                 launch_prepared_update(prepared, install_directory, os.getpid())
             except Exception as error:
                 discard_prepared_update(prepared)
                 preparation_failed(error)
                 return
+            progress_popup["close"]()
             handle_app_close()
 
         start_background_task("WindowsUpdatePrepare", prepare_worker,
@@ -2363,15 +2444,20 @@ def build_ui() -> tk.Tk:
             if not messagebox.askyesno("Update Available", question, parent=root):
                 return
             update_state["busy"] = True
-            help_menu.entryconfigure(update_entry_index, state="disabled", label="Downloading update...")
+            help_menu.entryconfigure(update_entry_index, state="disabled", label="Install Update...")
+            progress_popup = open_update_progress_window("Downloading update", "Downloading update package... 0%")
             target = Path(tempfile.gettempdir()) / "PewVista-update" / auto_update.UPDATE_FILE_NAME
 
             def download_progress(received: int, total: int) -> None:
                 if total:
-                    help_menu.entryconfigure(update_entry_index, label=f"Downloading update... {received * 100 // total}%")
+                    percent = received * 100 // max(1, total)
+                    rec_mb = received / (1024 * 1024)
+                    tot_mb = total / (1024 * 1024)
+                    progress_popup["set_stage"]("Downloading update", f"Downloading update package... {percent}% ({rec_mb:.1f} / {tot_mb:.1f} MB)", percent)
 
             def download_failed(error: BaseException) -> None:
                 update_state["busy"] = False
+                progress_popup["close"]()
                 help_menu.entryconfigure(update_entry_index, state="normal", label="Install Update...")
                 messagebox.showerror("Update", str(error), parent=root)
 
