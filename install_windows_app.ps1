@@ -670,6 +670,12 @@ public static class SetupConsoleWindow {
         if ($showWizard) { $progressWindow.Label.Text = "Closing programs that are using PewVista's files..."; [System.Windows.Forms.Application]::DoEvents() }
         $closedPrograms = Close-ProcessesUsingFolder -Folders $lockFolders -PathPatterns @($privateObsPattern)
         if ($closedPrograms.Count -gt 0) { Write-Host ("Closed: " + (($closedPrograms | Select-Object -Unique) -join ", ")) }
+        $privateObsSentinel = Join-Path (Join-Path (Join-Path $env:LOCALAPPDATA "PewVista") (Split-Path -Leaf $DataDirectory)) "obs_portable\config\obs-studio\.sentinel"
+        foreach ($sentinelDir in @((Join-Path $DestinationDirectory "Resourses\obs_portable\config\obs-studio\.sentinel"), (Join-Path $DataDirectory "obs_portable\config\obs-studio\.sentinel"), $privateObsSentinel)) {
+            if ($sentinelDir -and (Test-Path -LiteralPath $sentinelDir)) {
+                Remove-Item -LiteralPath $sentinelDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
         if ($isReinstall) {
             try {
                 $reinstallBackupName = (Get-Date -Format "yyyyMMdd-HHmmss-fff") + "-" + [guid]::NewGuid().ToString("N")

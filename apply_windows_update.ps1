@@ -337,6 +337,12 @@ try {
     $privateObsPattern = '\\AppData\\Local\\PewVista\\' + [regex]::Escape((Split-Path -Leaf $data)) + '\\obs_portable\\'
     $closedPrograms = Close-ProcessesUsingFolder -Folders (@($InstallDirectory) + $obsRoots) -PathPatterns @($privateObsPattern)
     if ($closedPrograms.Count -gt 0) { Write-Host ("Closed: " + (($closedPrograms | Select-Object -Unique) -join ", ")) }
+    $privateObsSentinel = Join-Path (Join-Path (Join-Path $env:LOCALAPPDATA "PewVista") (Split-Path -Leaf $data)) "obs_portable\config\obs-studio\.sentinel"
+    foreach ($sentinelDir in @((Join-Path $InstallDirectory "Resourses\obs_portable\config\obs-studio\.sentinel"), (Join-Path $data "obs_portable\config\obs-studio\.sentinel"), $privateObsSentinel)) {
+        if ($sentinelDir -and (Test-Path -LiteralPath $sentinelDir)) {
+            Remove-Item -LiteralPath $sentinelDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
     $backupName = (Get-Date -Format "yyyyMMdd-HHmmss-fff") + "-" + [guid]::NewGuid().ToString("N")
     $backupDirectory = Join-Path (Join-Path $InstallDirectory ".update-backups") $backupName
     [System.IO.Directory]::CreateDirectory($backupDirectory) | Out-Null
