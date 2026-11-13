@@ -2266,6 +2266,9 @@ class ObsSecondaryDisplayController:
         """
         if self.projector_opened or self.current_window_mode == "hidden":
             return
+        self._close_projector_windows()
+        if not self.browser_source_ready:
+            self._ensure_browser_source()
         self._request(
             "OpenSourceProjector",
             {
@@ -2275,12 +2278,86 @@ class ObsSecondaryDisplayController:
         )
         self.projector_opened = True
 
+    def _has_visible_projector_windows(self) -> bool:
+        """What: Check whether any visible OBS projector window for this browser source is still open.
+
+        Why included: Windows UIPI blocks PostMessageW(WM_CLOSE) when OBS was launched elevated
+        while PewVista runs unelevated; checking remaining windows lets us fall back to OBS websocket.
+        Where used: _close_projector_windows().
+        Returns: True when one or more matching projector windows remain visible.
+        """
+        if os.name != "nt":
+            return False
+        source_name = self._browser_source_name().strip().lower()
+        if not source_name:
+            return False
+        user32 = ctypes.WinDLL("user32", use_last_error=True)
+        enum_windows = user32.EnumWindows
+        enum_windows.argtypes = [ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p), ctypes.c_void_p]
+        enum_windows.restype = ctypes.c_bool
+        get_window_text_length = user32.GetWindowTextLengthW
+        get_window_text_length.argtypes = [ctypes.c_void_p]
+        get_window_text_length.restype = ctypes.c_int
+        get_window_text = user32.GetWindowTextW
+        get_window_text.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_int]
+        get_window_text.restype = ctypes.c_int
+        is_window_visible = user32.IsWindowVisible
+        is_window_visible.argtypes = [ctypes.c_void_p]
+        is_window_visible.restype = ctypes.c_bool
+        found = [False]
+
+        @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+        def enum_proc(hwnd, _lparam):
+            if not is_window_visible(hwnd):
+                return True
+            title_length = get_window_text_length(hwnd)
+            if title_length <= 0:
+                return True
+            buffer = ctypes.create_unicode_buffer(title_length + 1)
+            get_window_text(hwnd, buffer, len(buffer))
+            title_text = buffer.value.strip().lower()
+            if "projector" in title_text and source_name in title_text:
+                found[0] = True
+                return False
+            return True
+
+        try:
+            enum_windows(enum_proc, None)
+        except Exception:
+            return False
+        return found[0]
+
+    def _close_projectors_via_websocket(self) -> None:
+        """What: Ask OBS over obs-websocket to tear down all open projector windows by toggling its scene collection.
+
+        Why included: When OBS runs at a higher integrity level than PewVista, Win32 PostMessageW(WM_CLOSE)
+        is rejected by UIPI (Error 5), leaving duplicate projector windows stacked on screen.
+        Where used: _close_projector_windows() when visible projector windows remain after WM_CLOSE.
+        Returns: None; restores the active scene collection and marks browser_source_ready for refresh.
+        """
+        if self.client is None:
+            return
+        try:
+            collections_response = self._request("GetSceneCollectionList")
+            current_collection = str(collections_response.get("currentSceneCollectionName") or "Untitled")
+            collections = set(collections_response.get("sceneCollections") or [])
+            helper_collection = "PewVistaHidden" if current_collection != "PewVistaHidden" else "Untitled"
+            if helper_collection not in collections:
+                self._request("CreateSceneCollection", {"sceneCollectionName": helper_collection})
+            else:
+                self._request("SetCurrentSceneCollection", {"sceneCollectionName": helper_collection})
+            self._request("SetCurrentSceneCollection", {"sceneCollectionName": current_collection})
+            self.browser_source_ready = False
+            self.browser_source_settings = None
+        except Exception as error:
+            log_exception("obs_secondary_display.close_projectors_via_websocket", error)
+
     def _close_projector_windows(self) -> None:
         """What: Close visible Windows projector windows belonging to this browser source.
 
         Why included: Hiding/closing output should release the projector window without
         terminating the OBS application.
-        Where used: set_visible(False) and controller close.
+        Where used: set_visible(False), _open_projector_if_needed(), and controller close.
         Returns: None; non-Windows systems simply clear the open flag.
         """
         if os.name != "nt":
@@ -2306,6 +2383,7 @@ class ObsSecondaryDisplayController:
         post_message = user32.PostMessageW
         post_message.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p]
         post_message.restype = ctypes.c_bool
+        any_blocked = [False]
 
         @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
         def enum_proc(hwnd, _lparam):
@@ -2328,11 +2406,14 @@ class ObsSecondaryDisplayController:
                 return True
             if source_name not in title_text:
                 return True
-            post_message(hwnd, WM_CLOSE, None, None)
+            if not post_message(hwnd, WM_CLOSE, None, None):
+                any_blocked[0] = True
             return True
 
         try:
             enum_windows(enum_proc, None)
+            if any_blocked[0] or self._has_visible_projector_windows():
+                self._close_projectors_via_websocket()
         finally:
             self.projector_opened = False
 

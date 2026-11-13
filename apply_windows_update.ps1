@@ -133,6 +133,10 @@ try {
             if ($NoPause) { $arguments += "-NoPause" }
             if ($Gui) { $arguments += "-Gui" }
             try {
+                if ($Gui) {
+                    Start-Process -FilePath (Join-Path $PSHOME "powershell.exe") -Verb RunAs -ArgumentList $arguments | Out-Null
+                    exit 0
+                }
                 $elevated = Start-Process -FilePath (Join-Path $PSHOME "powershell.exe") -Verb RunAs -ArgumentList $arguments -Wait -PassThru
             }
             catch {
@@ -281,15 +285,32 @@ try {
                     $progressBar.Value = 100
                     $closeButton.Enabled = $true
                     $form.Close()
+                    return
                 } else {
                     $statusLabel.Text = 'The update could not be completed.'
                     $detailLabel.Text = "Program changes were rolled back where possible. Details: $logPath"
                     $closeButton.Enabled = $true
-                    if ($NoPause) { $form.Close() }
+                    if ($NoPause) { $form.Close(); return }
                 }
             }
+            elseif ([System.IO.File]::Exists($statusPath)) {
+                try {
+                    $checkStatus = Get-Content -LiteralPath $statusPath -Raw -Encoding UTF8 | ConvertFrom-Json
+                    if ([bool]$checkStatus.succeeded) {
+                        $timer.Stop()
+                        $workerResult["ExitCode"] = 0
+                        $statusLabel.Text = 'Update complete.'
+                        $detailLabel.Text = 'Your existing data was preserved. The application can now be used.'
+                        $progressBar.Style = 'Continuous'
+                        $progressBar.Value = 100
+                        $closeButton.Enabled = $true
+                        $form.Close()
+                        return
+                    }
+                } catch { }
+            }
         }.GetNewClosure())
-        $form.Add_FormClosing({ if (-not $worker.HasExited) { $_.Cancel = $true } }.GetNewClosure())
+        $form.Add_FormClosing({ if (-not $worker.HasExited -and $workerResult.ExitCode -ne 0) { $_.Cancel = $true } }.GetNewClosure())
         $timer.Start()
         [void]$form.ShowDialog()
         $timer.Dispose()
