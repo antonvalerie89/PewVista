@@ -228,8 +228,25 @@ public static class UninstallConsoleWindow {
         if (-not $NoAdmin -and -not $dataDirectory.StartsWith($programDataRoot + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "Installed shared-data path is outside ProgramData; no files were removed." }
     }
     $displayName = "PewVista - " + $churchName
+    $privateObsRoot = Join-Path (Join-Path $env:LOCALAPPDATA "PewVista") (Split-Path -Leaf $dataDirectory)
+    foreach ($proc in @(Get-Process -Name "PewVista", "The Light Ministries", "obs64", "java", "javaw" -ErrorAction SilentlyContinue)) {
+        $procPath = $null
+        try { $procPath = $proc.Path } catch { }
+        if ($procPath -and (
+            $procPath.StartsWith($AppDirectory + '\', [StringComparison]::OrdinalIgnoreCase) -or
+            ($privateObsRoot -and $procPath.StartsWith($privateObsRoot + '\', [StringComparison]::OrdinalIgnoreCase))
+        )) {
+            try {
+                if ($proc.CloseMainWindow()) { [void]$proc.WaitForExit(10000) }
+                if (-not $proc.HasExited) { & taskkill.exe /PID $proc.Id /T /F | Out-Null; [void]$proc.WaitForExit(5000) }
+            } catch { }
+        }
+    }
     $active = @(Get-Process -Name "PewVista", "The Light Ministries", "obs64", "java", "javaw" -ErrorAction SilentlyContinue | Where-Object {
-        $_.Path -and $_.Path.StartsWith($AppDirectory + '\', [StringComparison]::OrdinalIgnoreCase)
+        $_.Path -and (
+            $_.Path.StartsWith($AppDirectory + '\', [StringComparison]::OrdinalIgnoreCase) -or
+            ($privateObsRoot -and $_.Path.StartsWith($privateObsRoot + '\', [StringComparison]::OrdinalIgnoreCase))
+        )
     })
     if ($active.Count -gt 0) { throw "Close this installation's app, bundled OBS, and grammar runtime before uninstalling. Nothing has been removed." }
 
@@ -293,6 +310,9 @@ public static class UninstallConsoleWindow {
         }
     }
     $removalPaths = @($directories | ForEach-Object { Join-Path $AppDirectory $_ }) + $shortcuts
+    if ($privateObsRoot -and (Test-Path -LiteralPath $privateObsRoot -PathType Container)) {
+        $removalPaths += $privateObsRoot
+    }
     if ($DataAction -eq "Remove" -and -not $dataDirectory.Equals((Join-Path $AppDirectory "Data"), [StringComparison]::OrdinalIgnoreCase) -and
         (Test-Path -LiteralPath $dataDirectory -PathType Container)) {
         $removalPaths += $dataDirectory
