@@ -56,6 +56,8 @@ OBS_PORTABLE_DIR_RELATIVE_PATH = Path("Resourses") / "obs_portable"
 OBS_DOWNLOAD_URL = "https://github.com/obsproject/obs-studio/releases/download/32.1.2/OBS-Studio-32.1.2-Windows-x64.zip"
 OBS_DOWNLOAD_SHA256 = "8d97e4563bd8d22d03e63042aa7dccede1d555c9bd35ce8a9e5019b0d0201bf6"
 OBS_RUNTIME_FOLDERS = ("bin", "data", "obs-plugins")
+VC_REDIST_DOWNLOAD_URL = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+VC_REDIST_REQUIRED_DLLS = ("msvcp140.dll", "msvcp140_1.dll", "msvcp140_2.dll", "vcruntime140.dll", "vcruntime140_1.dll")
 OBS_SCENE_NAME = "TheLightSecondaryScene"
 OBS_BROWSER_SOURCE_NAME = "TheLightSecondaryBrowser"
 OBS_SETTINGS_RELATIVE_PATH = Path("obs_secondary_settings.json")
@@ -1543,20 +1545,25 @@ class ObsSecondaryDisplayController:
         config_path.write_text(json.dumps(existing_config, indent=2), encoding="utf-8")
 
     def _close_stale_private_obs(self, obs_path: Path) -> None:
-        """What: Close PewVista's own OBS copy when it runs without PewVista's connection.
+        """What: Close PewVista's own OBS copies when they run without PewVista's connection.
 
-        Why included: OBS's updater can restart OBS outside PewVista; that instance lacks
-        the connection password, and a second launch is then blocked as "already running",
-        so connecting timed out.
-        Where used: _launch_obs_if_needed() before starting OBS.
-        Returns: None; only processes running PewVista's private OBS file are closed.
+        Why included: OBS's updater or another PewVista copy can leave an obs_portable
+        instance holding port 4455 with a different connection password, which blocks
+        a second OBS launch and causes websocket authentication to fail.
+        Where used: _launch_obs_if_needed() before starting OBS, and ObsSecondaryDisplayController.close().
+        Returns: None; only processes running PewVista's private portable OBS files are closed.
         """
         if sys.platform != "win32" or not self._is_portable_obs_path(obs_path):
             return
         target = str(Path(obs_path).resolve()).replace("'", "''")
+        local_root = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "PewVista"
+        local_prefix = str(local_root.resolve()).replace("'", "''")
         script = (
             "Get-Process obs64 -ErrorAction SilentlyContinue | "
-            f"Where-Object {{ $_.Path -and ([IO.Path]::GetFullPath($_.Path) -ieq '{target}') }} | "
+            "Where-Object { $_.Path -and ("
+            f"([IO.Path]::GetFullPath($_.Path) -ieq '{target}') -or "
+            f"(([IO.Path]::GetFullPath($_.Path)).StartsWith('{local_prefix}', [StringComparison]::OrdinalIgnoreCase) -and ($_.Path -match '\\\\obs_portable\\\\'))"
+            ") } | "
             "ForEach-Object { Stop-Process -Id $_.Id -Force; $_.WaitForExit(10000) | Out-Null }"
         )
         try:
@@ -1840,6 +1847,84 @@ class ObsSecondaryDisplayController:
             if kernel32 is not None and frozen_dll_directory:
                 kernel32.SetDllDirectoryW(str(frozen_dll_directory))
 
+    def _is_vc_redist_available(self, obs_path: Path | None = None) -> bool:
+        """What: Check whether the 64-bit Visual C++ runtime DLLs required by OBS are available.
+
+        Why included: Portable OBS Studio fails with missing-DLL popups on clean Windows PCs
+        that lack MSVCP140.dll and VCRUNTIME140(_1).dll.
+        Where used: _ensure_vc_redist_runtime() before launching OBS.
+        Returns: True when every required DLL exists in System32 or beside obs64.exe.
+        """
+        if os.name != "nt":
+            return True
+        system_root = Path(os.environ.get("SystemRoot") or r"C:\Windows") / "System32"
+        obs_bin_dir = obs_path.parent if obs_path is not None else None
+        for dll_name in VC_REDIST_REQUIRED_DLLS:
+            if (system_root / dll_name).is_file():
+                continue
+            if obs_bin_dir is not None and (obs_bin_dir / dll_name).is_file():
+                continue
+            return False
+        return True
+
+    def _ensure_vc_redist_runtime(self, obs_path: Path | None = None) -> None:
+        """What: Install the Microsoft Visual C++ 2015-2022 Redistributable (x64) when missing.
+
+        Why included: OBS Studio's portable build does not bundle MSVCP140/VCRUNTIME140 DLLs.
+        Where used: _launch_obs_if_needed() before starting obs64.exe.
+        Returns: None; raises ObsSecondaryDisplayError if missing and installation cannot succeed.
+        """
+        if self._is_vc_redist_available(obs_path):
+            return
+        if not bool(self.settings.get("auto_install", True)):
+            raise ObsSecondaryDisplayError(
+                "Microsoft Visual C++ 2015-2022 Redistributable (x64) is required for OBS Studio (msvcp140.dll / vcruntime140.dll) and is not installed on this PC."
+            )
+        temp_root = Path(os.environ.get("TEMP") or os.environ.get("TMP") or str(self._portable_obs_root_path().parent))
+        temp_root.mkdir(parents=True, exist_ok=True)
+        installer_path = temp_root / f"PewVista-vc_redist.x64-{secrets.token_hex(8)}.exe"
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        try:
+            request = urllib.request.Request(VC_REDIST_DOWNLOAD_URL, headers={"User-Agent": "PewVista"})
+            with urllib.request.urlopen(request, timeout=60) as response, installer_path.open("wb") as output:
+                while True:
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    output.write(chunk)
+            escaped_installer = str(installer_path).replace("'", "''")
+            ps_script = (
+                f"$sig = Get-AuthenticodeSignature -LiteralPath '{escaped_installer}'; "
+                "if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft Corporation*') { exit 2 }; "
+                f"$p = Start-Process -FilePath '{escaped_installer}' -ArgumentList '/install','/quiet','/norestart' -Verb RunAs -Wait -PassThru; "
+                "if ($null -eq $p) { exit 1223 }; "
+                "exit $p.ExitCode"
+            )
+            result = subprocess.run(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", ps_script],
+                check=False,
+                creationflags=creationflags,
+                timeout=300,
+            )
+            if result.returncode == 2:
+                raise ObsSecondaryDisplayError(
+                    "The downloaded Microsoft Visual C++ Redistributable failed its digital signature check."
+                )
+            if not self._is_vc_redist_available(obs_path):
+                raise ObsSecondaryDisplayError(
+                    "Microsoft Visual C++ 2015-2022 Redistributable (x64) is required by OBS Studio (msvcp140.dll, vcruntime140.dll, vcruntime140_1.dll) and could not be installed automatically."
+                )
+        except (OSError, urllib.error.URLError, subprocess.SubprocessError) as error:
+            if not self._is_vc_redist_available(obs_path):
+                raise ObsSecondaryDisplayError(
+                    "Microsoft Visual C++ 2015-2022 Redistributable (x64) is missing (msvcp140.dll, vcruntime140.dll, vcruntime140_1.dll) and could not be downloaded or installed. Connect to the internet and try again."
+                ) from error
+        finally:
+            try:
+                installer_path.unlink()
+            except OSError:
+                pass
+
     def _launch_obs_if_needed(self, obs_path: Path) -> None:
         """What: Connect to an existing websocket or launch OBS and wait for readiness.
 
@@ -1850,6 +1935,7 @@ class ObsSecondaryDisplayController:
         """
         if not bool(self.settings.get("auto_launch", True)):
             return
+        self._ensure_vc_redist_runtime(obs_path)
         # Rewrite the bundled OBS remote-control config on every connection so a password
         # added later still reaches OBS the next time it starts.
         self._configure_portable_obs_websocket(obs_path)

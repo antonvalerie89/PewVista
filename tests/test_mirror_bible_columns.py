@@ -1124,11 +1124,22 @@ def test_library_queue_updates_preserve_position_identity_and_active_state():
         result = display_bridge.upsert_display_queue_item(updated, match_title=True)
         assert result["queue_items"][1]["selected_verse_index"] == 0
         assert len(result["queue_items"]) == 3
-        new_song = dict(updated, id="library-9-0-new", source_item_id="9")
+        new_song = dict(updated, id="library-9-0-new", source_item_id="9", title="Brand New Song")
         result = display_bridge.upsert_display_queue_item(new_song, match_title=True)
         assert len(result["queue_items"]) == 4
         assert result["queue_items"][-1]["id"] == "library-9-0-new"
         assert display_bridge.load_display_queue_state()["queue_items"][1]["source_item_id"] == "7"
+        # A recalled/imported song whose saved source_item_id differs from the local Library ID
+        # must still update in place when its title matches, while distinct songs with
+        # different titles remain separate.
+        recalled_update = dict(updated, id="library-77-0-new", source_item_id="77", title="New Title",
+                               verses=["Recalled updated verse one", "Recalled updated verse two"])
+        result = display_bridge.upsert_display_queue_item(recalled_update, match_title=True)
+        assert len(result["queue_items"]) == 4
+        assert result["queue_items"][1]["id"] == "library-7-0-original"
+        assert result["queue_items"][1]["source_item_id"] == "77"
+        assert result["queue_items"][1]["verses"] == ["Recalled updated verse one", "Recalled updated verse two"]
+        assert result["queue_items"][1]["text"] == "Recalled updated verse one"
 
 
 def test_send_buttons_confirm_added_and_updated_content():
@@ -1207,9 +1218,14 @@ def test_send_buttons_confirm_added_and_updated_content():
             preparation_context["preparation_state"] = {}
             tab_preparation.build_preparation_tab(preparation, preparation_context)
             header = next(widget for widget in descendants(preparation) if isinstance(widget, tk.Entry))
+            body = next(widget for widget in descendants(preparation) if isinstance(widget, tk.Text))
             header.insert(0, "Preparation fixture")
+            body.insert("1.0", "First preaching block")
             send = next(widget for widget in descendants(preparation) if isinstance(widget, tk.Button) and widget.cget("text") == "Send to Display")
             send.invoke()
+            header.delete(0, "end")
+            header.insert(0, "Updated Preparation header")
+            body.insert("end", "\nSecond line")
             send.invoke()
             messages = [call.args[1] for call in info.call_args_list]
             assert messages == ["Song added to Display.", "Song updated in Display.",
@@ -1217,6 +1233,7 @@ def test_send_buttons_confirm_added_and_updated_content():
                                 "Preparation added to Display.", "Preparation updated in Display."], messages
             assert refresh.call_count == 6
             assert len(display_bridge.load_display_queue_state()["queue_items"]) == 3
+            assert display_bridge.load_display_queue_state()["queue_items"][2]["title"] == "Updated Preparation header"
     finally:
         root.destroy()
 

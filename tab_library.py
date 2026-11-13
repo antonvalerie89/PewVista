@@ -1485,6 +1485,7 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         resolved_path = resolve_library_background_path(target_path)
         state["background_path"] = str(resolved_path) if resolved_path else ""
         if not is_library_tab_active():
+            refresh_preview_text_layout()
             return
         preview_container.configure(bg="#000000")
         preview_label.configure(bg="#000000", fg="#ffffff", compound="center")
@@ -1681,8 +1682,8 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             }, force=True)
             return
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
-        title = str(current_song.get("title") or "Untitled")
-        song_key = str(current_song.get("song_key") or "").strip()
+        title = str(title_var.get() or current_song.get("title") or "").strip() or "Untitled"
+        song_key = str(key_var.get() or current_song.get("song_key") or "").strip()
         subtitle = verse_labels[verse_index] if verse_index < len(verse_labels) else f"Verse {verse_index + 1}"
         if song_key:
             subtitle = f"{subtitle} [{song_key}]"
@@ -1698,7 +1699,7 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             "verse_labels": verse_labels,
             "selected_verse_index": verse_index,
             "font_value": list(get_preview_font_value()),
-            "background_path": str(current_song.get("background_path") or "").strip(),
+            "background_path": str(background_var.get() or current_song.get("background_path") or "").strip(),
             "license_provider": normalize_license_provider(license_provider_var.get()),
             "license_author": author_var.get().strip(),
             "license_info": license_info_var.get().strip(),

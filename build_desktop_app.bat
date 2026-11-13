@@ -21,18 +21,6 @@ if not exist "%PYTHON_EXE%" (
     exit /b 1
 )
 
-if /I "%PEWVISTA_SKIP_CHECKS%"=="1" (
-    echo [Gate] PEWVISTA_SKIP_CHECKS=1 set; skipping reliability checks.
-) else (
-    echo [Gate] Running reliability checks before packaging...
-    call "%ROOT_DIR%run_reliability_checks.bat"
-    if errorlevel 1 (
-        echo [ERROR] Reliability checks failed. No package was built.
-        echo         Fix the failures, or set PEWVISTA_SKIP_CHECKS=1 to bypass once.
-        exit /b 1
-    )
-)
-
 echo [Step 1/5] Ensuring build, spelling, and grammar dependencies are available...
 "%PYTHON_EXE%" -m PyInstaller --version >nul 2>&1
 if errorlevel 1 (
@@ -90,10 +78,15 @@ if not exist "%ROOT_DIR%Resourses\grammar\LanguageTool\languagetool-server.jar" 
 )
 
 echo [Step 2/5] Running pre-build reliability checks...
-call "%ROOT_DIR%run_reliability_checks.bat"
-if errorlevel 1 (
-    echo [ERROR] Pre-build reliability checks failed. Aborting build.
-    exit /b 1
+if /I "%PEWVISTA_SKIP_CHECKS%"=="1" (
+    echo [Gate] PEWVISTA_SKIP_CHECKS=1 set; skipping reliability checks.
+) else (
+    call "%ROOT_DIR%run_reliability_checks.bat"
+    if errorlevel 1 (
+        echo [ERROR] Pre-build reliability checks failed. Aborting build.
+        echo         Fix the failures, or set PEWVISTA_SKIP_CHECKS=1 to bypass once.
+        exit /b 1
+    )
 )
 
 echo.

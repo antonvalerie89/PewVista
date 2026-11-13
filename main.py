@@ -3996,6 +3996,52 @@ def build_ui() -> tk.Tk:
             messagebox.showwarning("Data Health", "Database checks reported problems:\n\n" + "\n".join(issues) +
                 "\n\nRestore from Data > Import Databases... or a backup in the shared data folder's .backups directory.", parent=root)
 
+    last_display_bounds_signature = [
+        tuple(int(refresh_secondary_display_bounds().get(k) or 0) for k in ("x", "y", "width", "height"))
+    ]
+
+    def poll_display_bounds_changes() -> None:
+        """What: Detect monitor resolution/arrangement changes and resize previews/output live.
+
+        Why included: Operators may connect a screen or change Windows display resolution
+        while PewVista is already open; all previews and OBS output must adjust automatically.
+        Where used: Repeating 2-second Tk timer in build_ui().
+        Returns: None; reschedules itself until the application closes.
+        """
+        if app_state.get("closing"):
+            return
+        try:
+            current_bounds = refresh_secondary_display_bounds()
+            current_signature = tuple(int(current_bounds.get(k) or 0) for k in ("x", "y", "width", "height"))
+            if current_signature != last_display_bounds_signature[0]:
+                last_display_bounds_signature[0] = current_signature
+                display_state = bottom_section.get("display_state")
+                refresh_render_settings = display_state.get("refresh_render_settings") if isinstance(display_state, dict) else None
+                if callable(refresh_render_settings):
+                    refresh_render_settings()
+                for state_key in ("welcome_state", "preparation_state", "library_state"):
+                    tab_state = tabs_content.get(state_key)
+                    refresh_preview = tab_state.get("refresh_preview") if isinstance(tab_state, dict) else None
+                    if callable(refresh_preview):
+                        refresh_preview()
+                mirror_controller.clear_preview_background_cache()
+                mirror_controller.clear_preview_overlay_cache()
+                mirror_controller.resize_preview_to_available_space()
+                mirror_controller.render_preview()
+                if hasattr(mirror_controller, "enabled_var") and mirror_controller.enabled_var.get():
+                    mirror_controller.last_secondary_signature = None
+                    mirror_controller.pending_secondary_signature = None
+                    mirror_controller.request_push_to_secondary(force=True)
+        except Exception as error:
+            log_exception("main.poll_display_bounds_changes", error)
+        finally:
+            if not app_state.get("closing"):
+                try:
+                    root.after(2000, poll_display_bounds_changes)
+                except tk.TclError:
+                    pass
+
+    root.after(2000, poll_display_bounds_changes)
     root.after(5000, lambda: start_background_task("DataHealthBackup",
         lambda *_args: run_daily_backup(get_app_data_path()),
         on_success=report_data_health_issues,

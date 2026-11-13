@@ -339,6 +339,25 @@ class InstalledObsPathTests(unittest.TestCase):
         helper = (Path(obs_module.__file__).with_name("install_obs_runtime.ps1")).read_text(encoding="utf-8")
         self.assertIn(f'"{obs_module.OBS_DOWNLOAD_URL}"', helper)
         self.assertIn(obs_module.OBS_DOWNLOAD_SHA256.upper(), helper)
+        self.assertIn(f'"{obs_module.VC_REDIST_DOWNLOAD_URL}"', helper)
+        for dll_name in obs_module.VC_REDIST_REQUIRED_DLLS:
+            self.assertIn(f'"{dll_name}"', helper)
+
+    def test_vc_redist_check_detects_missing_and_present_dlls(self) -> None:
+        """What: Detect missing Visual C++ runtime DLLs and allow present ones in System32 or beside OBS.
+
+        Why included: Clean Windows installs without VC++ Redistributable fail with msvcp140/vcruntime140 errors.
+        Where used: OBS VC++ runtime prerequisite regression.
+        Returns: None.
+        """
+        fake_win = self.root / "FakeWindows"
+        fake_sys32 = fake_win / "System32"
+        fake_sys32.mkdir(parents=True)
+        with patch.object(obs_module.os, "name", "nt"), patch.dict(os.environ, {"SystemRoot": str(fake_win)}):
+            self.assertFalse(self.controller._is_vc_redist_available(self.executable))
+            for dll_name in obs_module.VC_REDIST_REQUIRED_DLLS:
+                (fake_sys32 / dll_name).write_bytes(b"dll")
+            self.assertTrue(self.controller._is_vc_redist_available(self.executable))
 
 
     def test_obs_launch_does_not_inherit_app_dll_directory(self) -> None:

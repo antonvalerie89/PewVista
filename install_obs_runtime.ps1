@@ -16,6 +16,83 @@ $script:ObsDownloadUrl = "https://github.com/obsproject/obs-studio/releases/down
 $script:ObsDownloadSha256 = "8D97E4563BD8D22D03E63042AA7DCCEDE1D555C9BD35CE8A9E5019B0D0201BF6"
 $script:ObsRuntimeFolders = @("bin", "data", "obs-plugins")
 $script:ObsMinimumMajorVersion = 28
+$script:VcRedistDownloadUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+$script:VcRedistRequiredDlls = @("msvcp140.dll", "msvcp140_1.dll", "msvcp140_2.dll", "vcruntime140.dll", "vcruntime140_1.dll")
+
+function Test-VcRedistInstalled {
+    <#
+        What: Check whether the 64-bit Microsoft Visual C++ 2015-2022 runtime DLLs are installed.
+        Why included: Portable OBS Studio (obs64.exe and Qt6) cannot start without MSVCP140/VCRUNTIME140.
+        Where used: Install-VcRedistRuntime before downloading or running vc_redist.x64.exe.
+        Returns: True when every required DLL is present in System32; otherwise False.
+    #>
+    $system32 = [Environment]::GetFolderPath([Environment+SpecialFolder]::System)
+    if (-not $system32) { return $false }
+    foreach ($dll in $script:VcRedistRequiredDlls) {
+        if (-not (Test-Path -LiteralPath (Join-Path $system32 $dll) -PathType Leaf)) { return $false }
+    }
+    return $true
+}
+
+function Install-VcRedistRuntime([scriptblock]$Progress = $null) {
+    <#
+        What: Ensure the 64-bit Microsoft Visual C++ Redistributable is installed when running as administrator.
+        Why included: Fresh Windows installations lack msvcp140.dll and vcruntime140(_1).dll needed by obs64.exe.
+        Where used: Install-PewVistaObsRuntime before or alongside preparing OBS Studio.
+        Returns: "present", "installed", or "skipped"; throws with a readable reason on failure.
+    #>
+    if (Test-VcRedistInstalled) { return "present" }
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { return "skipped" }
+    $installerPath = Join-Path ([System.IO.Path]::GetTempPath()) ("PewVista-vc_redist.x64-" + [guid]::NewGuid().ToString("N") + ".exe")
+    try {
+        if ($Progress) { & $Progress "Downloading Microsoft Visual C++ Runtime..." 0 }
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        $request = [System.Net.HttpWebRequest]::Create($script:VcRedistDownloadUrl)
+        $request.UserAgent = "PewVista-Setup"
+        $request.Timeout = 60000
+        $request.ReadWriteTimeout = 60000
+        $response = $request.GetResponse()
+        try {
+            $total = [double]$response.ContentLength
+            $download = $response.GetResponseStream()
+            $output = [System.IO.File]::Create($installerPath)
+            try {
+                $buffer = New-Object byte[] (1024 * 1024)
+                $received = 0.0
+                while (($read = $download.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                    $output.Write($buffer, 0, $read)
+                    $received += $read
+                    if ($Progress -and $total -gt 0) { & $Progress ("Downloading Microsoft Visual C++ Runtime... {0:N0} of {1:N0} MB" -f ($received / 1MB), ($total / 1MB)) ([int](100 * $received / $total)) }
+                }
+            }
+            finally {
+                $output.Dispose()
+                $download.Dispose()
+            }
+        }
+        finally {
+            $response.Close()
+        }
+        $signature = Get-AuthenticodeSignature -LiteralPath $installerPath
+        if ($signature.Status -ne "Valid" -or $signature.SignerCertificate.Subject -notlike "*Microsoft Corporation*") {
+            throw "The downloaded Microsoft Visual C++ Runtime failed its digital signature check."
+        }
+        if ($Progress) { & $Progress "Installing Microsoft Visual C++ Runtime..." 100 }
+        $process = Start-Process -FilePath $installerPath -ArgumentList @("/install", "/quiet", "/norestart") -Wait -PassThru
+        if ($process.ExitCode -notin @(0, 1638, 3010) -and -not (Test-VcRedistInstalled)) {
+            throw "The Microsoft Visual C++ Runtime installer exited with code $($process.ExitCode)."
+        }
+        if (-not (Test-VcRedistInstalled)) {
+            throw "The Microsoft Visual C++ Runtime finished, but required runtime DLLs are still missing."
+        }
+        return "installed"
+    }
+    finally {
+        if (Test-Path -LiteralPath $installerPath) { Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue }
+    }
+}
 
 function Find-InstalledObsRoot {
     <#
@@ -93,6 +170,7 @@ function Install-PewVistaObsRuntime {
         [scriptblock]$Progress = $null
     )
     $Destination = [System.IO.Path]::GetFullPath($Destination).TrimEnd('\')
+    [void](Install-VcRedistRuntime -Progress $Progress)
     if (Test-Path -LiteralPath (Join-Path $Destination "bin\64bit\obs64.exe") -PathType Leaf) { return "present" }
     $staging = $Destination + ".staging"
     if (Test-Path -LiteralPath $staging) { Remove-Item -LiteralPath $staging -Recurse -Force }

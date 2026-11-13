@@ -871,13 +871,13 @@ def build_preparation_tab(tab_frame: tk.Frame, context: dict[str, object]) -> No
         """
         if not isinstance(preview_container, tk.Frame) or not isinstance(preview_label, tk.Label):
             return
+        refresh_preview_layout()
         if not is_preparation_tab_active():
             state["preview_needs_refresh"] = True
             cancel_preview_gif_animation()
             close_preview_video()
             return
         state["preview_needs_refresh"] = False
-        refresh_preview_layout()
         refresh_page_block_selector()
         refresh_details()
         render_selected_block_preview()
@@ -1109,14 +1109,12 @@ def build_preparation_tab(tab_frame: tk.Frame, context: dict[str, object]) -> No
         Returns: None; no-ops when no matching Preparation item is in the bridge.
         """
         queue_items = list(load_display_queue_state().get("queue_items") or [])
-        title = str(state["header_var"].get() or "Preparation").strip().casefold()
         item_index = next(
             (
                 index
                 for index, item in enumerate(queue_items)
                 if isinstance(item, dict)
                 and str(item.get("source") or "").casefold() == "preparation"
-                and str(item.get("title") or "Preparation").strip().casefold() == title
             ),
             None,
         )
@@ -1200,13 +1198,14 @@ def build_preparation_tab(tab_frame: tk.Frame, context: dict[str, object]) -> No
         sent_selection_count = len([entry for entry in verse_entries if str(entry.get("text") or "").strip()])
 
         def save_preparation_item() -> bool:
-            """What: Upsert the composed Preparation item by source/title and retain its queue slot.
+            """What: Upsert the composed Preparation item by source and retain its queue slot.
 
-            Why included: Re-sending edited preparation should update rather than duplicate the item.
+            Why included: Re-sending edited preparation (including when the theme header changes)
+            should update the existing Preparation item rather than adding a second one.
             Where used: Worker callable passed to start_background_task().
             Returns: True for an updated existing row, False for a new row.
             """
-            result = upsert_display_queue_item(queue_item, match_title=True)
+            result = upsert_display_queue_item(queue_item)
             return not any(entry.get("id") == queue_item["id"] for entry in result["queue_items"])
 
         def handle_append_result(was_updated: bool) -> None:

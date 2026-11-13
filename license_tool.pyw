@@ -23,7 +23,7 @@ README_TEXT = """PEWVISTA BACKUP - {today}
 Keep this on a USB drive and a second place. Never share it or put it on GitHub.
 
 TO RESTORE: double-click "Restore PewVista.bat" in this folder.
-It puts back your signing keys, grammar checker, and license records.
+It puts back your signing keys, grammar checker, license records, and Desktop License Tool icon.
 (On a new PC, download the project from GitHub to C:\\PewVista first:
  https://github.com/antonvalerie89/PewVista)
 

@@ -1539,6 +1539,7 @@ def build_welcome_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         Where used: Debounced edits and direct preview control updates.
         Returns: None.
         """
+        sync_preview_size(preview_container, preview_label)
         if not is_welcome_tab_active():
             pause_preview_activity(preview_label)
             return

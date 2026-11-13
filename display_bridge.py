@@ -604,10 +604,11 @@ def upsert_display_queue_item(item: dict[str, object], *, match_title: bool = Fa
         title = str(item.get("title") or "").strip().casefold()
         source_item_id = str(item.get("source_item_id") or "")
 
-        def matches_existing(existing_item) -> bool:
+        def matches_existing(existing_item, *, allow_title_fallback: bool = False) -> bool:
             """What: Match stable source identity before falling back to legacy source/title matching.
 
-            Why included: Renaming an existing Library song must update its queue slot, not append another.
+            Why included: Renaming an existing Library song must update its queue slot, not append another,
+            and recalled/imported service items whose IDs differ from the current Library DB must still update.
             Where used: upsert_display_queue_item() while locating the replacement index.
             Returns: True for the same source-owned record.
             """
@@ -620,7 +621,10 @@ def upsert_display_queue_item(item: dict[str, object], *, match_title: bool = Fa
                     if len(parts) >= 3 and parts[0] == "library" and parts[1].isdigit():
                         existing_source_id = parts[1]
                 if existing_source_id:
-                    return existing_source_id == source_item_id
+                    if existing_source_id == source_item_id:
+                        return True
+                    if not allow_title_fallback:
+                        return False
             return not match_title or str(existing_item.get("title") or "").strip().casefold() == title
 
         existing_index = next(
@@ -631,6 +635,15 @@ def upsert_display_queue_item(item: dict[str, object], *, match_title: bool = Fa
             ),
             None,
         )
+        if existing_index is None and match_title and title:
+            existing_index = next(
+                (
+                    index
+                    for index, existing_item in enumerate(queue_items)
+                    if matches_existing(existing_item, allow_title_fallback=True)
+                ),
+                None,
+            )
         replacement = dict(item)
         if existing_index is None:
             queue_items.append(replacement)
@@ -644,6 +657,16 @@ def upsert_display_queue_item(item: dict[str, object], *, match_title: bool = Fa
                 verses = replacement.get("verses")
                 if isinstance(verses, list) and verses:
                     replacement["selected_verse_index"] = min(int(existing_item["selected_verse_index"]), len(verses) - 1)
+                    idx = max(0, int(replacement.get("selected_verse_index") or 0))
+                    if idx < len(verses):
+                        replacement["text"] = str(verses[idx] or "").strip()
+                    labels = replacement.get("verse_labels")
+                    if isinstance(labels, list) and idx < len(labels):
+                        label = str(labels[idx] or "").strip()
+                        subtitle = str(replacement.get("subtitle") or "")
+                        bracket_start = subtitle.rfind(" [")
+                        suffix = subtitle[bracket_start:] if bracket_start >= 0 and subtitle.endswith("]") else ""
+                        replacement["subtitle"] = f"{label}{suffix}" if label else subtitle
             queue_items[existing_index] = replacement
         return save_display_queue_state({"queue_items": queue_items})
 

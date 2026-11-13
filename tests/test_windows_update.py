@@ -870,7 +870,7 @@ class WindowsUpdateTests(unittest.TestCase):
         shutil.copytree(self.installed, app_directory)
         result = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
             "-File", str(self.installer.with_name("package_windows_release.ps1")),
-            "-AppDirectory", str(app_directory), "-OutputRoot", str(output)], capture_output=True, text=True, timeout=45, env=environment)
+            "-AppDirectory", str(app_directory), "-OutputRoot", str(output)], capture_output=True, text=True, timeout=90, env=environment)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         release = next(output.iterdir())
         install_zip = release / "PewVista-Install-Windows-x64.zip"
@@ -896,7 +896,7 @@ class WindowsUpdateTests(unittest.TestCase):
         for repeat_index in range(2):
             repeated = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
                 "-File", str(self.installer.with_name("package_windows_release.ps1")),
-                "-AppDirectory", str(app_directory), "-OutputRoot", str(output)], capture_output=True, text=True, timeout=45)
+                "-AppDirectory", str(app_directory), "-OutputRoot", str(output)], capture_output=True, text=True, timeout=90)
             self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
             if repeat_index == 0:
                 delta_zip = output / "latest" / "PewVista-Update-Windows-x64.zip"

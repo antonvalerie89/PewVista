@@ -21,7 +21,7 @@ function Test-SameFolder([string]$a, [string]$b) {
 }
 
 try {
-    $answer = Show-Message "Restore your PewVista signing keys, grammar checker, and license records from this backup onto this PC?" "Restore PewVista" "YesNo" "Question"
+    $answer = Show-Message "Restore your PewVista signing keys, grammar checker, license records, and Desktop License Tool icon from this backup onto this PC?" "Restore PewVista" "YesNo" "Question"
     if ($answer -ne "Yes") { exit 0 }
 
     $keysSource = Join-Path $backup "PewVista Signing"
@@ -60,6 +60,26 @@ try {
         else {
             Copy-Item -LiteralPath $records -Destination (Join-Path $project "license_records (from backup).txt") -Force
             $report.Add("License records: this PC already has a different list; the backup copy was saved as 'license_records (from backup).txt'.")
+        }
+        $licenseTool = Join-Path $project "license_tool.pyw"
+        if (Test-Path -LiteralPath $licenseTool) {
+            $pythonw = Join-Path $project ".venv\Scripts\pythonw.exe"
+            if (-not (Test-Path -LiteralPath $pythonw)) {
+                $foundPythonw = Get-Command pythonw.exe -ErrorAction SilentlyContinue
+                if ($foundPythonw) { $pythonw = $foundPythonw.Source }
+            }
+            $desktopDir = [Environment]::GetFolderPath("Desktop")
+            $shortcutPath = Join-Path $desktopDir "PewVista License Tool.lnk"
+            $wshShell = New-Object -ComObject WScript.Shell
+            $shortcut = $wshShell.CreateShortcut($shortcutPath)
+            $shortcut.TargetPath = $pythonw
+            $shortcut.Arguments = "`"$licenseTool`""
+            $shortcut.WorkingDirectory = $project
+            $iconPath = Join-Path $project "Resourses\PewVista.ico"
+            if (Test-Path -LiteralPath $iconPath) { $shortcut.IconLocation = "$iconPath,0" }
+            $shortcut.Description = "PewVista - Create License Code"
+            $shortcut.Save()
+            $report.Add("Desktop icon: 'PewVista License Tool' placed on your Desktop.")
         }
     }
     else {
