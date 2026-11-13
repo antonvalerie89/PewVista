@@ -410,53 +410,211 @@ class SpellCheckController:
             self.poll_id = self.root.after(50, self._poll)
 
     def _popup(self, event) -> str | None:
-        """What: Offer corrections for the word under a right-click in any eligible field.
+        """What: Offer standard editing actions and spelling/grammar corrections on right-click.
 
-        Why included: Single-line entries cannot underline individual words, but can still offer corrections.
+        Why included: Single-line and multi-line text fields need right-click Cut, Copy, Paste,
+        Select All, Delete, Undo/Redo, and Clear alongside spelling/grammar suggestions.
         Where used: App-wide right-click binding, including popup fields.
         Returns: Tk break for handled fields, otherwise None.
         """
         widget = event.widget
-        if self.closed or not self.editable(widget):
+        if self.closed or not isinstance(widget, (tk.Text, tk.Entry, ttk.Entry, ttk.Combobox)):
             return None
+        try:
+            widget_state = str(widget.cget("state"))
+            is_password = not isinstance(widget, tk.Text) and bool(str(widget.cget("show") or ""))
+        except tk.TclError:
+            return None
+        if widget_state == "disabled" or is_password:
+            return None
+        if isinstance(widget, ttk.Combobox) and widget_state == "readonly":
+            return None
+        is_editable = self.editable(widget)
+        try:
+            widget.focus_set()
+        except tk.TclError:
+            pass
         snapshot = self.text(widget)
-        if isinstance(widget, tk.Text):
-            index = widget.index(f"@{event.x},{event.y}")
-            offset = widget.count("1.0", index, "chars")
-            position = offset[0] if offset else 0
-        else:
-            position = int(widget.index(f"@{event.x}"))
-        match = next((match for match in WORD_PATTERN.finditer(snapshot)
-                      if match.start() <= position < match.end()), None)
-        if match is None:
-            return None
+        match = None
+        if is_editable:
+            try:
+                if isinstance(widget, tk.Text):
+                    index = widget.index(f"@{event.x},{event.y}")
+                    offset = widget.count("1.0", index, "chars")
+                    position = offset[0] if offset else 0
+                else:
+                    position = int(widget.index(f"@{event.x}"))
+                match = next((m for m in WORD_PATTERN.finditer(snapshot)
+                              if m.start() <= position < m.end()), None)
+            except Exception:
+                match = None
         if self.menu is not None:
             self.menu.destroy()
         self.menu_token += 1
-        self.menu_context = (widget, snapshot, match.start(), match.end(), match.group())
+        if match is not None:
+            self.menu_context = (widget, snapshot, match.start(), match.end(), match.group())
+        else:
+            self.menu_context = (widget, snapshot, 0, 0, "")
         self.menu = tk.Menu(widget, tearoff=False)
-        self.menu.add_command(label="Checking spelling...", state="disabled")
+        if match is not None:
+            self.menu.add_command(label="Checking spelling...", state="disabled")
+            self.menu.add_separator()
+            self.menu.add_command(label="Ignore word (this session)", command=self._ignore)
+            self.menu.add_separator()
+
+        has_selection = self._has_selection(widget)
+        has_clipboard = self._has_clipboard(widget)
+        has_text = bool(snapshot)
+
+        self.menu.add_command(
+            label="Cut",
+            state="normal" if (is_editable and has_selection) else "disabled",
+            command=lambda w=widget: self._edit_action(w, "cut"),
+        )
+        self.menu.add_command(
+            label="Copy",
+            state="normal" if (has_selection or has_text) else "disabled",
+            command=lambda w=widget: self._edit_action(w, "copy"),
+        )
+        self.menu.add_command(
+            label="Paste",
+            state="normal" if (is_editable and has_clipboard) else "disabled",
+            command=lambda w=widget: self._edit_action(w, "paste"),
+        )
+        self.menu.add_command(
+            label="Delete",
+            state="normal" if (is_editable and has_selection) else "disabled",
+            command=lambda w=widget: self._edit_action(w, "delete"),
+        )
         self.menu.add_separator()
-        self.menu.add_command(label="Ignore word (this session)", command=self._ignore)
-        self.menu.add_separator()
-        self.language_menu = tk.Menu(self.menu, tearoff=False)
-        selected = self._selected_language(widget, snapshot)
-        self.language_menu.add_command(label="Detected: " + ({"en": "English", "af": "Afrikaans"}.get(selected, "checking...")), state="disabled")
-        self.language_menu.add_separator()
-        self.language_choice = tk.StringVar(master=widget, value=self.language_modes.get(widget, "auto"))
-        for label, mode in (("Auto", "auto"), ("English", "en"), ("Afrikaans", "af")):
-            self.language_menu.add_radiobutton(label=label, variable=self.language_choice, value=mode,
-                                              command=lambda choice=mode: self._set_language(widget, choice))
-        self.menu.add_cascade(label="Spelling language", menu=self.language_menu)
-        self.grammar_menu = tk.Menu(self.menu, tearoff=False)
-        self.menu.add_cascade(label="English grammar", menu=self.grammar_menu)
-        self._fill_grammar_menu()
-        self._submit("suggestions", match.group(), widget, snapshot, self.menu_token)
+        self.menu.add_command(
+            label="Select All",
+            state="normal" if has_text else "disabled",
+            command=lambda w=widget: self._edit_action(w, "select_all"),
+        )
+        self.menu.add_command(
+            label="Clear",
+            state="normal" if (is_editable and has_text) else "disabled",
+            command=lambda w=widget: self._edit_action(w, "clear"),
+        )
+        if isinstance(widget, tk.Text) and is_editable:
+            try:
+                undo_enabled = bool(int(widget.cget("undo")))
+            except Exception:
+                undo_enabled = False
+            if undo_enabled:
+                self.menu.add_separator()
+                self.menu.add_command(label="Undo", command=lambda w=widget: self._edit_action(w, "undo"))
+                self.menu.add_command(label="Redo", command=lambda w=widget: self._edit_action(w, "redo"))
+
+        if is_editable:
+            self.menu.add_separator()
+            self.language_menu = tk.Menu(self.menu, tearoff=False)
+            selected = self._selected_language(widget, snapshot)
+            self.language_menu.add_command(label="Detected: " + ({"en": "English", "af": "Afrikaans"}.get(selected, "checking...")), state="disabled")
+            self.language_menu.add_separator()
+            self.language_choice = tk.StringVar(master=widget, value=self.language_modes.get(widget, "auto"))
+            for label, mode in (("Auto", "auto"), ("English", "en"), ("Afrikaans", "af")):
+                self.language_menu.add_radiobutton(label=label, variable=self.language_choice, value=mode,
+                                                  command=lambda choice=mode: self._set_language(widget, choice))
+            self.menu.add_cascade(label="Spelling language", menu=self.language_menu)
+            if match is not None:
+                self.grammar_menu = tk.Menu(self.menu, tearoff=False)
+                self.menu.add_cascade(label="English grammar", menu=self.grammar_menu)
+                self._fill_grammar_menu()
+                self._submit("suggestions", match.group(), widget, snapshot, self.menu_token)
+            else:
+                self.grammar_menu = None
+        else:
+            self.language_menu = None
+            self.grammar_menu = None
         try:
             self.menu.tk_popup(event.x_root, event.y_root)
         finally:
             self.menu.grab_release()
         return "break"
+
+    @staticmethod
+    def _has_selection(widget: tk.Misc) -> bool:
+        try:
+            if isinstance(widget, tk.Text):
+                return bool(widget.tag_ranges("sel"))
+            return bool(widget.selection_present())
+        except Exception:
+            return False
+
+    @staticmethod
+    def _has_clipboard(widget: tk.Misc) -> bool:
+        try:
+            return bool(widget.clipboard_get())
+        except Exception:
+            return False
+
+    def _edit_action(self, widget: tk.Misc, action: str) -> None:
+        """What: Execute a standard clipboard or selection command on a Text or Entry widget.
+
+        Why included: Provides consistent right-click Cut, Copy, Paste, Delete, Select All, Clear, Undo, and Redo.
+        Where used: Context-menu edit commands built in _popup().
+        Returns: None; notifies modified/key listeners when editable content changes.
+        """
+        try:
+            if action == "cut":
+                if not self.editable(widget):
+                    return
+                widget.event_generate("<<Cut>>")
+                if not isinstance(widget, tk.Text):
+                    widget.event_generate("<KeyRelease>")
+                else:
+                    self._check(widget)
+            elif action == "copy":
+                if self._has_selection(widget):
+                    widget.event_generate("<<Copy>>")
+                else:
+                    content = self.text(widget)
+                    if content:
+                        widget.clipboard_clear()
+                        widget.clipboard_append(content)
+            elif action == "paste":
+                if not self.editable(widget):
+                    return
+                widget.event_generate("<<Paste>>")
+                if not isinstance(widget, tk.Text):
+                    widget.event_generate("<KeyRelease>")
+                else:
+                    self._check(widget)
+            elif action == "delete":
+                if not self.editable(widget) or not self._has_selection(widget):
+                    return
+                if isinstance(widget, tk.Text):
+                    widget.delete("sel.first", "sel.last")
+                    self._check(widget)
+                else:
+                    widget.delete("sel.first", "sel.last")
+                    widget.event_generate("<KeyRelease>")
+            elif action == "select_all":
+                if isinstance(widget, tk.Text):
+                    widget.tag_add("sel", "1.0", "end-1c")
+                    widget.mark_set("insert", "end-1c")
+                else:
+                    widget.selection_range(0, "end")
+                    widget.icursor("end")
+            elif action == "clear":
+                if not self.editable(widget):
+                    return
+                if isinstance(widget, tk.Text):
+                    widget.delete("1.0", "end")
+                    self._check(widget)
+                else:
+                    widget.delete(0, "end")
+                    widget.event_generate("<KeyRelease>")
+            elif action == "undo" and isinstance(widget, tk.Text):
+                widget.edit_undo()
+                self._check(widget)
+            elif action == "redo" and isinstance(widget, tk.Text):
+                widget.edit_redo()
+                self._check(widget)
+        except tk.TclError:
+            pass
 
     def _fill_menu(self, suggestions: list[str], failed: bool = False) -> None:
         """What: Replace the loading menu item with correction commands.

@@ -874,10 +874,10 @@ def build_bible_reader_tab(tab_frame: tk.Frame, context: dict[str, object]) -> N
         _bind_mousewheel_cycle(combo, list(combo["values"]))
 
     def open_bible_selection_popup() -> None:
-        """What: Open a multi-select dropdown popup with a tickbox before each Bible and a Done button.
+        """What: Open a scrollable multi-select dropdown popup with a tickbox before each Bible and an always-visible Done button.
 
-        Why included: Standard Tk Menus close after every single click; a dropdown popup with
-        Checkbuttons and a Done button lets the operator tick multiple Bibles in one step.
+        Why included: Standard Tk Menus close after every single click; a bounded, scrollable dropdown
+        popup with Checkbuttons and a Done button keeps all Bibles and Done within the screen.
         Where used: Select Bibles button command.
         Returns: None; closes any existing popup if clicked again.
         """
@@ -888,19 +888,17 @@ def build_bible_reader_tab(tab_frame: tk.Frame, context: dict[str, object]) -> N
             return
         rebuild_bible_selection_menu()
         source_names = list((state.get("source_by_display") or {}).keys())
-        popup = tk.Toplevel(tab_frame.winfo_toplevel())
+        parent_win = tab_frame.winfo_toplevel()
+        popup = tk.Toplevel(parent_win)
         state["bible_selector_popup"] = popup
         popup.title("Select Bibles")
-        popup.transient(tab_frame.winfo_toplevel())
+        popup.transient(parent_win)
         popup.resizable(False, False)
-        bible_menu_button.update_idletasks()
-        popup_x = bible_menu_button.winfo_rootx()
-        popup_y = bible_menu_button.winfo_rooty() + bible_menu_button.winfo_height() + 2
-        popup.geometry(f"+{popup_x}+{popup_y}")
 
         outer = tk.Frame(popup, bd=2, relief="solid", padx=10, pady=10)
         outer.pack(fill="both", expand=True)
         outer.columnconfigure(0, weight=1)
+        outer.rowconfigure(1, weight=1)
 
         popup_widgets: list[tk.Widget] = [popup, outer]
         popup_labels: list[tk.Widget] = []
@@ -923,10 +921,41 @@ def build_bible_reader_tab(tab_frame: tk.Frame, context: dict[str, object]) -> N
             popup_widgets.extend([top_actions, select_all_btn, clear_btn])
             popup_inputs.extend([select_all_btn, clear_btn])
 
-            list_frame = tk.Frame(outer)
-            list_frame.grid(row=1, column=0, sticky="nsew", pady=(2, 8))
+            scroll_host = tk.Frame(outer, bd=1, relief="solid")
+            scroll_host.grid(row=1, column=0, sticky="nsew", pady=(2, 8))
+            scroll_host.columnconfigure(0, weight=1)
+            scroll_host.rowconfigure(0, weight=1)
+
+            list_canvas = tk.Canvas(scroll_host, highlightthickness=0, borderwidth=0, width=320, height=min(280, max(90, len(source_names) * 28)))
+            list_scrollbar = tk.Scrollbar(scroll_host, orient="vertical", command=list_canvas.yview)
+            list_canvas.configure(yscrollcommand=list_scrollbar.set)
+            list_canvas.grid(row=0, column=0, sticky="nsew")
+            list_scrollbar.grid(row=0, column=1, sticky="ns")
+
+            list_frame = tk.Frame(list_canvas)
             list_frame.columnconfigure(0, weight=1)
-            popup_widgets.append(list_frame)
+            canvas_win = list_canvas.create_window((0, 0), window=list_frame, anchor="nw")
+            list_frame.bind("<Configure>", lambda _e: list_canvas.configure(scrollregion=list_canvas.bbox("all")))
+            list_canvas.bind("<Configure>", lambda e: list_canvas.itemconfigure(canvas_win, width=e.width))
+
+            def scroll_bible_list(event) -> str:
+                if getattr(event, "delta", 0):
+                    direction = -1 if event.delta > 0 else 1
+                elif getattr(event, "num", None) == 4:
+                    direction = -1
+                elif getattr(event, "num", None) == 5:
+                    direction = 1
+                else:
+                    return "break"
+                list_canvas.yview_scroll(direction, "units")
+                return "break"
+
+            for w in (scroll_host, list_canvas, list_frame):
+                w.bind("<MouseWheel>", scroll_bible_list, add="+")
+                w.bind("<Button-4>", scroll_bible_list, add="+")
+                w.bind("<Button-5>", scroll_bible_list, add="+")
+
+            popup_widgets.extend([scroll_host, list_canvas, list_scrollbar, list_frame])
             selected_names = get_selected_bible_names()
             for row_idx, source_name in enumerate(source_names):
                 variable = bible_check_vars.setdefault(source_name, tk.BooleanVar(value=source_name in selected_names))
@@ -940,6 +969,9 @@ def build_bible_reader_tab(tab_frame: tk.Frame, context: dict[str, object]) -> N
                     command=lambda selected_name=source_name: on_bible_selection_changed(selected_name),
                 )
                 chk.grid(row=row_idx, column=0, sticky="ew", pady=1)
+                chk.bind("<MouseWheel>", scroll_bible_list, add="+")
+                chk.bind("<Button-4>", scroll_bible_list, add="+")
+                chk.bind("<Button-5>", scroll_bible_list, add="+")
                 popup_widgets.append(chk)
                 popup_inputs.append(chk)
 
@@ -953,6 +985,19 @@ def build_bible_reader_tab(tab_frame: tk.Frame, context: dict[str, object]) -> N
         popup_widgets.append(done_btn)
         popup_inputs.append(done_btn)
         style_widgets(popup_widgets, label_widgets=popup_labels, input_widgets=popup_inputs)
+
+        bible_menu_button.update_idletasks()
+        popup.update_idletasks()
+        req_w = max(340, popup.winfo_reqwidth())
+        req_h = min(420, popup.winfo_reqheight())
+        screen_w = popup.winfo_screenwidth()
+        screen_h = popup.winfo_screenheight()
+        popup_x = min(max(8, bible_menu_button.winfo_rootx()), max(8, screen_w - req_w - 16))
+        popup_y = bible_menu_button.winfo_rooty() + bible_menu_button.winfo_height() + 2
+        if popup_y + req_h > screen_h - 48:
+            above_y = bible_menu_button.winfo_rooty() - req_h - 4
+            popup_y = above_y if above_y >= 8 else max(8, screen_h - req_h - 48)
+        popup.geometry(f"{req_w}x{req_h}+{popup_x}+{popup_y}")
         popup.protocol("WM_DELETE_WINDOW", close_popup)
         popup.bind("<Escape>", lambda _event: close_popup())
         popup.focus_force()

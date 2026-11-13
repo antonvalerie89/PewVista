@@ -111,9 +111,11 @@ CONTENTS
 8. BIBLE TAB
 - Bible Comparison: show one passage in up to three translations side by
   side.
-- Select Bibles: opens a dropdown with a checkbox before each Bible name
-  (plus Select All and Clear All) and a Done button to close when you
-  finish choosing translations.
+- Select Bibles: opens a scrollable dropdown with a checkbox before each
+  Bible name (plus Select All and Clear All at the top) and an
+  always-visible Done button at the bottom.
+- Right-clicking any text box in PewVista offers Cut, Copy, Paste,
+  Delete, Select All, Clear, Undo/Redo, and spelling/grammar suggestions.
 - Book, Chapter, Start, and End: choose the passage.
 - Background: the image or video behind the verses.
 - Send to Display adds the passage to the queue. Use Previous and Next in
