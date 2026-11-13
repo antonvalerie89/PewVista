@@ -890,5 +890,28 @@ def build_bible_reader_tab(tab_frame: tk.Frame, context: dict[str, object]) -> N
         input_widgets=[bible_menu_button, bible_selection_menu, book_combo, chapter_combo, start_verse_combo, end_verse_combo],
     )
 
-    refresh_sources()
-    state["restoring_settings"] = False
+    notebook = context.get("notebook")
+    is_tab_active = context.get("is_tab_active")
+
+    def is_bible_tab_active() -> bool:
+        if callable(is_tab_active):
+            return bool(is_tab_active(tab_frame))
+        if not isinstance(notebook, ttk.Notebook):
+            return True
+        try:
+            return notebook.nametowidget(notebook.select()) is tab_frame
+        except tk.TclError:
+            return True
+
+    def ensure_bible_tab_loaded(_event=None) -> None:
+        if not is_bible_tab_active():
+            return
+        if not state.get("sources"):
+            refresh_sources()
+            state["restoring_settings"] = False
+
+    if isinstance(notebook, ttk.Notebook):
+        notebook.bind("<<NotebookTabChanged>>", ensure_bible_tab_loaded, add="+")
+    if is_bible_tab_active():
+        refresh_sources()
+        state["restoring_settings"] = False

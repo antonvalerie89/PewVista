@@ -7,7 +7,7 @@ import shutil
 from datetime import date
 from pathlib import Path
 import tkinter as tk
-from tkinter import filedialog, messagebox, simpledialog
+from tkinter import filedialog, messagebox, simpledialog, ttk
 from urllib import parse as urllib_parse
 from urllib import request as urllib_request
 
@@ -1145,5 +1145,28 @@ def build_bible_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         input_widgets=inputs,
     )
 
-    refresh_bible_files()
-    refresh_discovered_versions()
+    notebook = context.get("notebook")
+    is_tab_active = context.get("is_tab_active")
+    state["loaded"] = False
+
+    def is_add_bible_tab_active() -> bool:
+        if callable(is_tab_active):
+            return bool(is_tab_active(tab_frame))
+        if not isinstance(notebook, ttk.Notebook):
+            return True
+        try:
+            return notebook.nametowidget(notebook.select()) is tab_frame
+        except tk.TclError:
+            return True
+
+    def ensure_add_bible_loaded(_event=None) -> None:
+        if not is_add_bible_tab_active() or state.get("loaded"):
+            return
+        state["loaded"] = True
+        refresh_bible_files()
+        refresh_discovered_versions()
+
+    if isinstance(notebook, ttk.Notebook):
+        notebook.bind("<<NotebookTabChanged>>", ensure_add_bible_loaded, add="+")
+    if is_add_bible_tab_active():
+        ensure_add_bible_loaded()

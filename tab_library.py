@@ -1578,15 +1578,18 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
     preview_container.bind("<Configure>", lambda _event: refresh_preview_text_layout(), add="+")
 
     def handle_notebook_tab_changed(_event=None) -> None:
-        """What: Resume current song preview on Library activation and stop it when hidden.
+        """What: Load songs on first Library activation, resume preview, or stop preview when hidden.
 
-        Why included: Media playback and render callbacks should not run in background tabs.
+        Why included: Media playback, SQLite reads, and render callbacks should not run in background tabs.
         Where used: Notebook <<NotebookTabChanged>> binding.
         Returns: None; refreshes selected details on activation or pauses preview activity.
         """
         if not isinstance(notebook, ttk.Notebook):
             return
         if is_library_tab_active():
+            if not state.get("songs"):
+                refresh_song_list(reload_db=True)
+                return
             current_song = get_song_by_id(state.get("selected_song_id"))
             if current_song is None:
                 refresh_preview_background(None)
@@ -1835,7 +1838,7 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         for row_index, verse_row in enumerate(state["verse_rows"], start=1):
             verse_row["number_label"].configure(text=f"{row_index}.")
 
-    def add_verse_row(verse_text: str = "", part_type: str = "Verse") -> None:
+    def add_verse_row(verse_text: str = "", part_type: str = "Verse", *, defer_refresh: bool = False) -> None:
         """What: Create a selectable verse row with a part-type dropdown, text editor, and Remove control.
 
         Why included: Songs store lyrics as ordered parts (verse, chorus, bridge, ...) rather than one text blob.
@@ -1926,19 +1929,21 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         verse_text_widget.bind("<Button-1>", handle_select, add="+")
         verse_text_widget.bind("<FocusIn>", handle_select, add="+")
         verse_text_widget.bind("<KeyRelease>", handle_select, add="+")
-        apply_layout_style(
-            [verse_row_frame, verse_frame, verse_text_widget, remove_button],
-            label_widgets=[number_label],
-            input_widgets=[verse_text_widget, remove_button],
-        )
+        if not defer_refresh:
+            apply_layout_style(
+                [verse_row_frame, verse_frame, verse_text_widget, remove_button],
+                label_widgets=[number_label],
+                input_widgets=[verse_text_widget, remove_button],
+            )
         bind_outer_verse_scroll(verse_row_frame)
         bind_outer_verse_scroll(number_label)
         bind_outer_verse_scroll(verse_frame)
         bind_text_verse_scroll(verse_text_widget)
         bind_outer_verse_scroll(remove_button)
-        refresh_verse_row_labels()
-        refresh_selected_verse_visuals()
-        refresh_verses_scroll_region()
+        if not defer_refresh:
+            refresh_verse_row_labels()
+            refresh_selected_verse_visuals()
+            refresh_verses_scroll_region()
 
     def refresh_details(song: dict[str, object] | None = None) -> None:
         """What: Update song metadata summary, selected preview text, background, and Send state.
@@ -2070,23 +2075,43 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         update_license_info_visibility()
         background_var.set(str(song.get("background_path") or "") if song else "")
         sync_background_display()
-        for verse_row in state["verse_rows"]:
-            verse_row["frame"].destroy()
-        state["verse_rows"] = []
-        verses = song.get("verses", []) if song else []
+        verses = [str(v) for v in (song.get("verses", []) if song else [])] or [""]
         verse_types = list(song.get("verse_types") or []) if song else []
-        if verses:
-            for verse_index, verse in enumerate(verses):
-                add_verse_row(str(verse), verse_types[verse_index] if verse_index < len(verse_types) else "Verse")
-            state["selected_verse_index"] = 0
-        else:
-            add_verse_row("")
-            state["selected_verse_index"] = None if song is None else 0
+        existing_rows = state["verse_rows"]
+        while len(existing_rows) > len(verses):
+            removed = existing_rows.pop()
+            removed["frame"].destroy()
+        newly_created: list[dict[str, object]] = []
+        for verse_index, verse_text in enumerate(verses):
+            part_type = normalize_part_type(verse_types[verse_index] if verse_index < len(verse_types) else "Verse")
+            if verse_index < len(existing_rows):
+                row = existing_rows[verse_index]
+                row["part_var"].set(part_type)
+                text_widget = row["text_widget"]
+                text_widget.delete("1.0", tk.END)
+                if verse_text:
+                    text_widget.insert("1.0", verse_text)
+            else:
+                add_verse_row(verse_text, part_type, defer_refresh=True)
+                newly_created.append(state["verse_rows"][-1])
+        if newly_created:
+            batch_widgets: list[tk.Widget] = []
+            batch_labels: list[tk.Widget] = []
+            batch_inputs: list[tk.Widget] = []
+            for row in newly_created:
+                batch_widgets.extend([row["frame"], row["verse_frame"], row["text_widget"], row["remove_button"]])
+                batch_labels.append(row["number_label"])
+                batch_inputs.extend([row["text_widget"], row["remove_button"]])
+            apply_layout_style(batch_widgets, label_widgets=batch_labels, input_widgets=batch_inputs)
+        state["selected_verse_index"] = None if song is None else 0
         set_send_to_display_button_for_song(song)
+        refresh_verse_row_labels()
         refresh_selected_verse_visuals()
+        verses_canvas.yview_moveto(0.0)
+        refresh_verses_scroll_region()
         refresh_details(song)
 
-    def refresh_song_list(*_args) -> None:
+    def refresh_song_list(*_args, reload_db: bool = True) -> None:
         """What: Reload songs, apply search, rebuild list labels, and preserve a valid selection.
 
         Why included: Search changes and persistence operations must keep editor/list state aligned.
@@ -2094,17 +2119,22 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         Returns: None; selects the first matching song when the prior selection is unavailable.
         """
         search_term = search_text_var.get().strip().lower()
-        songs = load_all_songs()
-        state["songs"] = songs
+        if reload_db or not state.get("songs"):
+            songs = load_all_songs()
+            state["songs"] = songs
+        else:
+            songs = list(state.get("songs") or [])
         filtered = [song for song in songs if not search_term or search_term in str(song.get("title") or "").lower() or search_term in str(song.get("song_key") or "").lower()]
         state["filtered_song_ids"] = [song["id"] for song in filtered]
         song_list.delete(0, tk.END)
-        for song in filtered:
-            label = str(song.get("title") or "Untitled")
-            song_key = str(song.get("song_key") or "").strip()
-            if song_key:
-                label = f"{label} ({song_key})"
-            song_list.insert(tk.END, label)
+        labels = [
+            f"{str(song.get('title') or 'Untitled')} ({str(song.get('song_key') or '').strip()})"
+            if str(song.get("song_key") or "").strip()
+            else str(song.get("title") or "Untitled")
+            for song in filtered
+        ]
+        if labels:
+            song_list.insert(0, *labels)
 
         current_song = get_song_by_id(state.get("selected_song_id"))
         if current_song is None:
@@ -2142,7 +2172,7 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
 
         Why included: A Listbox index is transient; the selected persistent ID identifies the record.
         Where used: Song Listbox <<ListboxSelect>> binding.
-        Returns: None; ignores empty/out-of-range selections.
+        Returns: None; ignores empty/out-of-range/unchanged selections.
         """
         selection = song_list.curselection()
         if not selection:
@@ -2151,6 +2181,8 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
         if list_index >= len(state["filtered_song_ids"]):
             return
         song_id = state["filtered_song_ids"][list_index]
+        if song_id == state.get("selected_song_id") and state.get("verse_rows"):
+            return
         song = get_song_by_id(song_id)
         state["selected_song_id"] = song_id
         populate_editor(song)
@@ -2216,7 +2248,7 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             get_editor_verse_types(),
         )
         state["selected_song_id"] = song_id
-        refresh_song_list()
+        refresh_song_list(reload_db=True)
         song = get_song_by_id(song_id)
         populate_editor(song)
 
@@ -2237,9 +2269,9 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             return
         delete_song_record(int(song_id))
         clear_editor(reset_selection=True)
-        refresh_song_list()
+        refresh_song_list(reload_db=True)
 
-    search_text_var.trace_add("write", refresh_song_list)
+    search_text_var.trace_add("write", lambda *_args: refresh_song_list(reload_db=False))
     def update_license_info_visibility() -> None:
         """What: Show the License info field only when Individual is selected.
 
@@ -2272,7 +2304,8 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
     delete_button.configure(command=delete_current_song)
 
     populate_editor(None)
-    refresh_song_list()
+    if is_library_tab_active():
+        refresh_song_list(reload_db=True)
 
     def refresh_preview_from_settings() -> None:
         """What: Invalidate cached preview colors/overlay and render using current settings.

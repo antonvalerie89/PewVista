@@ -662,13 +662,34 @@ public static class SetupConsoleWindow {
 
     $files = @(Get-ChildItem -LiteralPath $SourceDirectory -File -Recurse -Force)
     if ($showWizard) { $progressWindow = New-InstallProgressWindow $ChurchName }
-    # Reinstalling over an existing copy: close anything holding its program files first.
+    # Reinstalling over an existing copy: close anything holding its program files first,
+    # and keep a backup of the previous installation (retaining only the 2 most recent backups).
     $privateObsPattern = '\\AppData\\Local\\PewVista\\' + [regex]::Escape((Split-Path -Leaf $DataDirectory)) + '\\obs_portable\\'
     $lockFolders = @($DestinationDirectory, (Join-Path $DataDirectory "obs_portable"))
     if (Test-Path -LiteralPath $DestinationDirectory -PathType Container) {
         if ($showWizard) { $progressWindow.Label.Text = "Closing programs that are using PewVista's files..."; [System.Windows.Forms.Application]::DoEvents() }
         $closedPrograms = Close-ProcessesUsingFolder -Folders $lockFolders -PathPatterns @($privateObsPattern)
         if ($closedPrograms.Count -gt 0) { Write-Host ("Closed: " + (($closedPrograms | Select-Object -Unique) -join ", ")) }
+        if ($isReinstall) {
+            try {
+                $reinstallBackupName = (Get-Date -Format "yyyyMMdd-HHmmss-fff") + "-" + [guid]::NewGuid().ToString("N")
+                $reinstallBackupDir = Join-Path (Join-Path $DestinationDirectory ".update-backups") $reinstallBackupName
+                [System.IO.Directory]::CreateDirectory($reinstallBackupDir) | Out-Null
+                if (Test-Path -LiteralPath $DataDirectory -PathType Container) {
+                    $sharedObsRuntime = Join-Path $DataDirectory "obs_portable"
+                    & robocopy.exe $DataDirectory (Join-Path $reinstallBackupDir "Data") /E /COPY:DAT /DCOPY:DAT /NP /NFL /NDL /R:1 /W:1 /XD $sharedObsRuntime | Out-Null
+                }
+                $backupRoot = Join-Path $DestinationDirectory ".update-backups"
+                @(Get-ChildItem -LiteralPath $backupRoot -Directory -Force -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -match '^\d{8}-\d{6}-\d{3}-[0-9a-f]{32}$' } |
+                    Sort-Object Name -Descending | Select-Object -Skip 2) |
+                    ForEach-Object {
+                        try { [System.IO.Directory]::Delete($_.FullName, $true) }
+                        catch { Write-Host "An old installation backup could not be removed: $($_.Exception.Message)" }
+                    }
+            }
+            catch { Write-Host "Installation backup could not be completed: $($_.Exception.Message)" }
+        }
     }
     $count = 0
     foreach ($file in $files) {

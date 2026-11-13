@@ -1544,6 +1544,11 @@ def _import_database_archive(
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
             backup_archive = backup_directory / f"before-import-{stamp}.zip"
             _write_transfer_archive(backup_archive, backup_files, progress)
+            for stale_backup in sorted(backup_directory.glob("*.zip"))[:-2]:
+                try:
+                    stale_backup.unlink()
+                except OSError:
+                    continue
         created_media: list[Path] = []
         attempted: list[str] = []
         try:
@@ -1671,6 +1676,11 @@ def import_service_days_archive(
             backup_directory.mkdir(parents=True, exist_ok=True)
             backup_name = backup_directory / f"before-service-days-{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}.zip"
             _write_transfer_archive(backup_name, backup_files, progress)
+            for stale_backup in sorted(backup_directory.glob("*.zip"))[:-2]:
+                try:
+                    stale_backup.unlink()
+                except OSError:
+                    continue
 
         attempted: list[str] = []
         try:

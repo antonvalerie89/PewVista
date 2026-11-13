@@ -2018,7 +2018,8 @@ def build_welcome_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
     new_note_button.configure(command=clear_welcome_note_editor)
     save_note_button.configure(command=save_current_welcome_note)
     delete_note_button.configure(command=delete_current_welcome_note)
-    refresh_welcome_notes()
+    if is_welcome_tab_active():
+        refresh_welcome_notes()
     background_button.configure(command=choose_welcome_background)
     preview_container.bind("<Configure>", lambda _event: schedule_preview_refresh(preview_container, preview_label, welcome_text), add="+")
     preview_label.bind("<Destroy>", lambda _event: pause_preview_activity(preview_label), add="+")
