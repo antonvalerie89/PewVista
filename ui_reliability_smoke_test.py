@@ -580,6 +580,105 @@ def run_ui_smoke_test(temp_root: Path) -> None:
         text_color_box.set("Auto")
         text_color_box.event_generate("<<ComboboxSelected>>")
         _pump_until(root, lambda: overlay_layout.get_display_text_color() == "Auto")
+
+        # Test dark theme and GUI font family/style/size propagation across Entry, Text, Listbox, and Treeview
+        theme_box, family_box, style_box, size_box = main_boxes
+        theme_box.set("Midnight Amber")
+        theme_box.event_generate("<<ComboboxSelected>>")
+        style_box.set("Italic")
+        style_box.event_generate("<<ComboboxSelected>>")
+        size_box.set("16")
+        size_box.event_generate("<<ComboboxSelected>>")
+        root.update()
+        dark_palette = main.THEMES["Midnight Amber"]
+        _assert(
+            str(preacher_entry.cget("bg")).lower() == dark_palette["panel_bg"].lower(),
+            f"Dark theme Entry bg should match panel_bg {dark_palette['panel_bg']}, got {preacher_entry.cget('bg')}",
+        )
+        _assert(
+            str(preacher_entry.cget("fg")).lower() == dark_palette["text"].lower(),
+            f"Dark theme Entry fg should match text {dark_palette['text']}, got {preacher_entry.cget('fg')}",
+        )
+        _assert(
+            str(welcome_text_widget.cget("bg")).lower() == dark_palette["panel_bg"].lower(),
+            f"Dark theme Text bg should match panel_bg {dark_palette['panel_bg']}, got {welcome_text_widget.cget('bg')}",
+        )
+        entry_font = main.tkfont.Font(font=preacher_entry.cget("font"))
+        _assert(int(entry_font.cget("size")) == 16, f"Expected input font size 16, got {entry_font.cget('size')}")
+        _assert(str(entry_font.cget("slant")) == "italic", f"Expected italic input font, got {entry_font.cget('slant')}")
+        ttk_style = ttk.Style(notebook)
+        _assert(
+            str(ttk_style.lookup("Treeview", "background")).lower() == dark_palette["panel_bg"].lower(),
+            f"Treeview background should match dark theme {dark_palette['panel_bg']}, got {ttk_style.lookup('Treeview', 'background')}",
+        )
+
+        # Test History popup styling under dark theme
+        history_menu_index = next(
+            i for i in range(int(menu_bar.index("end") or -1) + 1)
+            if menu_bar.type(i) != "tearoff" and str(menu_bar.entrycget(i, "label")) == "History"
+        )
+        history_menu_widget = root.nametowidget(str(menu_bar.entrycget(history_menu_index, "menu")))
+        before_history_wins = {str(w) for w in root.winfo_children() if isinstance(w, tk.Toplevel)}
+        history_menu_widget.invoke(0)
+        _pump_until(root, lambda: any(isinstance(w, tk.Toplevel) and str(w) not in before_history_wins for w in root.winfo_children()))
+        history_win = next(w for w in root.winfo_children() if isinstance(w, tk.Toplevel) and str(w) not in before_history_wins)
+        _assert(str(history_win.cget("bg")).lower() == dark_palette["panel_bg"].lower(), "History popup bg did not match dark theme")
+        history_win.destroy()
+
+        # Test Bible tab scrollable multi-select popup with pinned Done button
+        bible_tab_index = next(
+            idx for idx, tab_id in enumerate(notebook.tabs())
+            if str(notebook.tab(tab_id, "text")) == "Bible"
+        )
+        notebook.select(bible_tab_index)
+        _pump_until(root, lambda: notebook.index(notebook.select()) == bible_tab_index)
+        bible_tab_frame = root.nametowidget(notebook.tabs()[bible_tab_index])
+        select_bibles_btn = next(
+            w for w in _iter_widgets(bible_tab_frame)
+            if isinstance(w, tk.Button) and ("Select Bibles" in str(w.cget("text")) or "selected" in str(w.cget("text")))
+        )
+        before_bible_wins = {str(w) for w in root.winfo_children() if isinstance(w, tk.Toplevel)}
+        select_bibles_btn.invoke()
+        _pump_until(root, lambda: any(isinstance(w, tk.Toplevel) and str(w) not in before_bible_wins for w in root.winfo_children()))
+        bible_popup = next(w for w in root.winfo_children() if isinstance(w, tk.Toplevel) and str(w) not in before_bible_wins)
+        _assert(str(bible_popup.cget("bg")).lower() == dark_palette["panel_bg"].lower(), "Bible selector popup bg did not match dark theme")
+        done_button = next(
+            (w for w in _iter_widgets(bible_popup) if isinstance(w, tk.Button) and str(w.cget("text")) == "Done"),
+            None,
+        )
+        _assert(done_button is not None, "Bible selector popup must have a Done button")
+        done_button.invoke()
+        _pump_until(root, lambda: not bible_popup.winfo_exists())
+
+        # Test right-click context menu on Entry/Text widgets (Cut, Copy, Paste, Select All, Clear)
+        from types import SimpleNamespace
+        from unittest.mock import patch as mock_patch
+        from spell_check import SpellCheckController
+        test_spell = SpellCheckController(root)
+        try:
+            with mock_patch.object(tk.Menu, "tk_popup"):
+                preacher_entry.delete(0, "end")
+                preacher_entry.insert(0, "Pastor John")
+                root.update()
+                test_spell._popup(SimpleNamespace(widget=preacher_entry, x=5, y=5, x_root=20, y_root=20))
+                _assert(test_spell.menu is not None, "Right-click context menu was not created")
+                menu_items = [
+                    str(test_spell.menu.entrycget(i, "label"))
+                    for i in range(int(test_spell.menu.index("end") or -1) + 1)
+                    if test_spell.menu.type(i) == "command"
+                ]
+                for expected_action in ("Cut", "Copy", "Paste", "Delete", "Select All", "Clear"):
+                    _assert(expected_action in menu_items, f"Missing {expected_action} in right-click menu: {menu_items}")
+        finally:
+            test_spell.close()
+
+        # Restore Light theme and default font settings
+        theme_box.set("Light")
+        theme_box.event_generate("<<ComboboxSelected>>")
+        style_box.set("Bold")
+        style_box.event_generate("<<ComboboxSelected>>")
+        size_box.set("12")
+        size_box.event_generate("<<ComboboxSelected>>")
         settings_window.destroy()
 
         # Test animated GIF stability: frames do not flicker between black and white
