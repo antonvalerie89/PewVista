@@ -231,8 +231,8 @@ CONTENTS
   Yes to open License and Subscription and renew.
 
 20. UPDATES
-- PewVista checks for updates about once a day and asks before
-  installing. Help > Check for Updates... checks immediately.
+- PewVista automatically checks for updates every time it opens and asks
+  before installing. Help > Check for Updates... also checks immediately.
 - Help > Install Update... installs an update ZIP you received from
   PewVista. Accept the Terms and Conditions when asked.
 - The app and OBS close while the update installs, the update window

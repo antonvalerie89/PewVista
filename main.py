@@ -2685,8 +2685,8 @@ def build_ui() -> tk.Tk:
     help_menu.add_command(label="Install Update...", command=install_windows_update)
     update_entry_index = int(help_menu.index("end"))
     help_menu.add_command(label="Check for Updates...", command=lambda: check_for_updates(manual=True))
-    if auto_update.check_due():
-        root.after(20000, check_for_updates)
+    if auto_update.UPDATE_FEED_URL:
+        root.after(4000, check_for_updates)
 
     def show_license_expiry_reminder() -> None:
         """What: Warn once per app start when the license expires within 10 days.
