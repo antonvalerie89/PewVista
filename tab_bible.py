@@ -183,10 +183,9 @@ def build_bible_reader_tab(tab_frame: tk.Frame, context: dict[str, object]) -> N
     saved_bibles = settings.get("selected_bibles")
     selected_bibles: list[str] = [name for name in saved_bibles if isinstance(name, str)] if isinstance(saved_bibles, list) else []
     bible_check_vars: dict[str, tk.BooleanVar] = {}
-    bible_menu_button = tk.Menubutton(controls_frame, text="Select Bibles", relief="raised", bd=2)
+    bible_menu_button = tk.Button(controls_frame, text="Select Bibles", relief="raised", bd=2)
     bible_menu_button.grid(row=1, column=0, columnspan=2, sticky="ew", padx=(0, 6))
     bible_selection_menu = tk.Menu(bible_menu_button, tearoff=False)
-    bible_menu_button.configure(menu=bible_selection_menu)
     book_combo = ttk.Combobox(controls_frame, textvariable=book_var, state="readonly", style="Content.TCombobox")
     book_combo.grid(row=1, column=2, sticky="ew", padx=6)
     chapter_combo = ttk.Combobox(controls_frame, textvariable=chapter_var, state="readonly", style="Content.TCombobox")
@@ -874,7 +873,91 @@ def build_bible_reader_tab(tab_frame: tk.Frame, context: dict[str, object]) -> N
         """
         _bind_mousewheel_cycle(combo, list(combo["values"]))
 
-    bible_menu_button.bind("<Button-1>", lambda _event: rebuild_bible_selection_menu(), add="+")
+    def open_bible_selection_popup() -> None:
+        """What: Open a multi-select dropdown popup with a tickbox before each Bible and a Done button.
+
+        Why included: Standard Tk Menus close after every single click; a dropdown popup with
+        Checkbuttons and a Done button lets the operator tick multiple Bibles in one step.
+        Where used: Select Bibles button command.
+        Returns: None; closes any existing popup if clicked again.
+        """
+        existing_popup = state.get("bible_selector_popup")
+        if isinstance(existing_popup, tk.Toplevel) and existing_popup.winfo_exists():
+            existing_popup.destroy()
+            state["bible_selector_popup"] = None
+            return
+        rebuild_bible_selection_menu()
+        source_names = list((state.get("source_by_display") or {}).keys())
+        popup = tk.Toplevel(tab_frame.winfo_toplevel())
+        state["bible_selector_popup"] = popup
+        popup.title("Select Bibles")
+        popup.transient(tab_frame.winfo_toplevel())
+        popup.resizable(False, False)
+        bible_menu_button.update_idletasks()
+        popup_x = bible_menu_button.winfo_rootx()
+        popup_y = bible_menu_button.winfo_rooty() + bible_menu_button.winfo_height() + 2
+        popup.geometry(f"+{popup_x}+{popup_y}")
+
+        outer = tk.Frame(popup, bd=2, relief="solid", padx=10, pady=10)
+        outer.pack(fill="both", expand=True)
+        outer.columnconfigure(0, weight=1)
+
+        popup_widgets: list[tk.Widget] = [popup, outer]
+        popup_labels: list[tk.Widget] = []
+        popup_inputs: list[tk.Widget] = []
+
+        if not source_names:
+            empty_label = tk.Label(outer, text="No Bibles found", anchor="w", justify="left")
+            empty_label.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+            popup_widgets.append(empty_label)
+            popup_labels.append(empty_label)
+        else:
+            top_actions = tk.Frame(outer)
+            top_actions.grid(row=0, column=0, sticky="ew", pady=(0, 6))
+            top_actions.columnconfigure(0, weight=1)
+            top_actions.columnconfigure(1, weight=1)
+            select_all_btn = tk.Button(top_actions, text="Select All", command=select_all_bibles)
+            select_all_btn.grid(row=0, column=0, sticky="ew", padx=(0, 4))
+            clear_btn = tk.Button(top_actions, text="Clear All", command=clear_bible_selection)
+            clear_btn.grid(row=0, column=1, sticky="ew", padx=(4, 0))
+            popup_widgets.extend([top_actions, select_all_btn, clear_btn])
+            popup_inputs.extend([select_all_btn, clear_btn])
+
+            list_frame = tk.Frame(outer)
+            list_frame.grid(row=1, column=0, sticky="nsew", pady=(2, 8))
+            list_frame.columnconfigure(0, weight=1)
+            popup_widgets.append(list_frame)
+            selected_names = get_selected_bible_names()
+            for row_idx, source_name in enumerate(source_names):
+                variable = bible_check_vars.setdefault(source_name, tk.BooleanVar(value=source_name in selected_names))
+                variable.set(source_name in selected_names)
+                chk = tk.Checkbutton(
+                    list_frame,
+                    text=source_name,
+                    variable=variable,
+                    anchor="w",
+                    justify="left",
+                    command=lambda selected_name=source_name: on_bible_selection_changed(selected_name),
+                )
+                chk.grid(row=row_idx, column=0, sticky="ew", pady=1)
+                popup_widgets.append(chk)
+                popup_inputs.append(chk)
+
+        def close_popup() -> None:
+            state["bible_selector_popup"] = None
+            if popup.winfo_exists():
+                popup.destroy()
+
+        done_btn = tk.Button(outer, text="Done", command=close_popup)
+        done_btn.grid(row=2, column=0, sticky="ew", pady=(4, 0))
+        popup_widgets.append(done_btn)
+        popup_inputs.append(done_btn)
+        style_widgets(popup_widgets, label_widgets=popup_labels, input_widgets=popup_inputs)
+        popup.protocol("WM_DELETE_WINDOW", close_popup)
+        popup.bind("<Escape>", lambda _event: close_popup())
+        popup.focus_force()
+
+    bible_menu_button.configure(command=open_bible_selection_popup)
     book_combo.bind("<<ComboboxSelected>>", trigger_refresh, add="+")
     chapter_combo.bind("<<ComboboxSelected>>", trigger_refresh, add="+")
     start_verse_combo.bind("<<ComboboxSelected>>", trigger_refresh, add="+")

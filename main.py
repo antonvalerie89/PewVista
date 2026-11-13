@@ -527,7 +527,12 @@ def set_widget_colors(widget: tk.Widget, theme: dict) -> None:
             except tk.TclError:
                 pass
 
-    widget_class = widget.winfo_class()
+    try:
+        if not widget.winfo_exists():
+            return
+        widget_class = widget.winfo_class()
+    except tk.TclError:
+        return
     background = theme["panel_bg"]
     foreground = theme["text"]
     active_background = theme["menu_bg"]
@@ -845,12 +850,12 @@ def open_date_picker(current_parent: tk.Misc, current_var: tk.StringVar, theme_n
         refresh_calendar()
 
     def select_day(chosen_date: date) -> None:
-        """Set the pending date when a calendar-day or Today button is pressed.
+        """Set the pending date when a calendar-day or Today button is pressed and apply it immediately.
 
-        What: Updates selected_date and moves the displayed month/year to the choice.
-        Why included: The chosen value may belong to an adjacent-month cell.
+        What: Updates selected_date, moves the displayed month/year to the choice, and commits/closes.
+        Why included: Clicking a day in the calendar should immediately select that date and trigger recall.
         Where used: Day-button commands and the Today button.
-        Returns: None; redraws the calendar but does not commit to the caller yet.
+        Returns: None; commits the selected date and closes the dialog.
         """
         selected_date["value"] = chosen_date
         displayed_year.set(chosen_date.year)
@@ -858,6 +863,7 @@ def open_date_picker(current_parent: tk.Misc, current_var: tk.StringVar, theme_n
         displayed_month_text.set(calendar.month_name[chosen_date.month])
         displayed_year_text.set(str(chosen_date.year))
         refresh_calendar()
+        apply_selected_date(close_dialog=True)
 
     def apply_selected_date(close_dialog: bool = True) -> None:
         """Commit the pending calendar choice to the caller's date variable.

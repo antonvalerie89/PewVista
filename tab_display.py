@@ -1637,8 +1637,44 @@ def build_display_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             apply_active_state,
         )
 
+    def deactivate_all_queue_items() -> None:
+        """What: Deselect the Active checkbox on every Display queue item without clearing live output.
+
+        Why included: Library Show Live sends a direct live song outside the queue, so any
+        previously active Display queue row must be deselected and not override the Show Live song.
+        Where used: Library Show Live button action.
+        Returns: None; updates in-memory and persisted queue items and redraws checkboxes.
+        """
+        queue_items = state.get("queue_items") or []
+        changed = False
+        for item in queue_items:
+            if isinstance(item, dict) and bool(item.get("active")):
+                item["active"] = False
+                changed = True
+        state["last_live_payload"] = None
+        if not changed:
+            return
+        state["last_queue_signature"] = build_items_signature(queue_items)
+        sync_queue_items_view()
+        refresh_details()
+
+        def persist_deactivated() -> None:
+            bridge = load_display_queue_state()
+            bridge_items = list(bridge.get("queue_items") or [])
+            any_active = False
+            for entry in bridge_items:
+                if isinstance(entry, dict) and bool(entry.get("active")):
+                    entry["active"] = False
+                    any_active = True
+            if any_active:
+                from display_bridge import save_display_queue_state
+                save_display_queue_state({"queue_items": bridge_items})
+
+        threading.Thread(target=persist_deactivated, name="DisplayDeactivateAll", daemon=True).start()
+
     if isinstance(display_state, dict):
         display_state["set_queue_item_active"] = set_queue_item_active
+        display_state["deactivate_all_queue_items"] = deactivate_all_queue_items
 
     def move_selected_item(step: int) -> None:
         """What: Move the currently selected queue item by the requested step.

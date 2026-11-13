@@ -45,11 +45,13 @@ CONTENTS
 - Menu bar: Settings, History, Licenses, Data, Members, and Help.
 
 3. PLANNING A SERVICE (INFO PANEL)
-- Choose the service date with the calendar (Month, Year, Today, Apply).
-- Choose the time slot (for example Morning or Evening) and enter the
+- Choose the service date with the calendar (clicking a day or Apply
+  immediately recalls any saved service for that date and time).
+- Choose the time slot (for example Morning or Night) and enter the
   preacher's name.
-- Add items from the content tabs with Send to Display. They appear in
-  the Display queue in order.
+- Add items from the content tabs with Send to Display. Welcome, Library,
+  and Preparation items update in place in their existing queue position
+  when edited and re-sent; Bible passages always add a new item.
 - Click Save to store the service so it can be recalled later. Click
   Print to print the order of service (see section 13).
 
@@ -91,8 +93,9 @@ CONTENTS
     Remove to delete one.
 - New Song starts an empty song, Save stores it, Clear empties the
   editor, and Delete removes the song from the library.
-- Show Live puts the selected song straight on the live screen; Send to
-  Display adds it to the queue.
+- Show Live puts the selected song straight on the live screen and
+  automatically deselects any active checkbox in the Display queue; Send
+  to Display adds or updates the song in the queue.
 - For licensed songs, the live screen shows the song key, title, author,
   and your church's license number in the corner, as required by
   licensing bodies. Record the numbers under Licenses (section 15).
@@ -108,7 +111,9 @@ CONTENTS
 8. BIBLE TAB
 - Bible Comparison: show one passage in up to three translations side by
   side.
-- Select Bibles: choose which translations to compare.
+- Select Bibles: opens a dropdown with a checkbox before each Bible name
+  (plus Select All and Clear All) and a Done button to close when you
+  finish choosing translations.
 - Book, Chapter, Start, and End: choose the passage.
 - Background: the image or video behind the verses.
 - Send to Display adds the passage to the queue. Use Previous and Next in
@@ -228,9 +233,10 @@ CONTENTS
   installing. Help > Check for Updates... checks immediately.
 - Help > Install Update... installs an update ZIP you received from
   PewVista. Accept the Terms and Conditions when asked.
-- The app and OBS close while the update installs, and PewVista restarts
-  afterwards. Your data, settings, and licenses are kept, and changed
-  files are backed up first.
+- The app and OBS close while the update installs, the update window
+  closes automatically when finished, and PewVista restarts afterwards.
+  Your data, settings, and licenses are kept, and only the 2 most recent
+  installation/update backups are retained so disk space is not filled up.
 - The update (and Setup when reinstalling) automatically closes any
   program that is using PewVista's files, such as OBS or the grammar
   checker, and retries a locked file instead of failing.

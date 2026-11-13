@@ -1670,6 +1670,10 @@ def build_library_tab(tab_frame: tk.Frame, context: dict[str, object]) -> None:
             if not callable(show_selected_song):
                 messagebox.showerror("Show Live", "Live output is not available.", parent=tab_frame.winfo_toplevel())
                 return
+            display_state = context.get("display_state")
+            deactivate_all = display_state.get("deactivate_all_queue_items") if isinstance(display_state, dict) else None
+            if callable(deactivate_all):
+                deactivate_all()
             show_selected_song({
                 "title": str(current_song.get("title") or "Untitled"),
                 "text": verse_text,

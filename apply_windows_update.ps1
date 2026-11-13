@@ -279,12 +279,14 @@ try {
                     $detailLabel.Text = 'Your existing data was preserved. The application can now be used.'
                     $progressBar.Style = 'Continuous'
                     $progressBar.Value = 100
+                    $closeButton.Enabled = $true
+                    $form.Close()
                 } else {
                     $statusLabel.Text = 'The update could not be completed.'
                     $detailLabel.Text = "Program changes were rolled back where possible. Details: $logPath"
+                    $closeButton.Enabled = $true
+                    if ($NoPause) { $form.Close() }
                 }
-                $closeButton.Enabled = $true
-                if ($NoPause) { $form.Close() }
             }
         }.GetNewClosure())
         $form.Add_FormClosing({ if (-not $worker.HasExited) { $_.Cancel = $true } }.GetNewClosure())
